@@ -1,0 +1,74 @@
+# Copyright (C) 2018, Renesas Electronics Europe Ltd., Patryk Mungai <patryk.mungai-ndungu.kx@renesas.com>
+# Copyright (C) 2018, Codethink, Ltd., Robert Marshall <robert.marshall@codethink.co.uk>
+# Copyright (C) 2017, Toshiba corp., Daniel Sangorrin <daniel.sangorrin@toshiba.co.jp>
+# SPDX-License-Identifier:	AGPL-3.0
+# This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, version 3.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+device_type: r8a7745-iwg22d-sodimm
+job_name: r8a7745-iwg22d-sodimm healthcheck
+
+timeouts:
+  job:
+    minutes: 10
+  action:
+    minutes: 5
+  connection:
+    minutes: 5
+priority: medium
+visibility: public
+
+
+# ACTION_BLOCK
+actions:
+- deploy:
+    timeout:
+      minutes: 5
+    to: tftp
+    # despite this being a Debian initramfs, it is not a complete Debian rootfs, so use oe compatibility
+    os: oe
+    kernel:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/images/r8a7745-iwg22d/v4.4.154-cip28/uImage 
+      type: uimage
+    ramdisk:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/images/r8a7745-iwg22d/RFS/generic-initramfs.cpio.gz
+      compression: gz
+      # the bootloader needs a u-boot header on the modified ramdisk
+      add-header: u-boot
+    dtb:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/images/r8a7745-iwg22d/v4.4.154-cip28/r8a7745-iwg22d-sodimm.dtb
+      # BOOT_BLOCK
+- boot:
+    auto_login:
+      login_prompt: '\(none\) login: '
+      username: root
+    prompts:
+      - '\(initramfs\)'
+    method: u-boot
+    commands: ramdisk
+    timeout:
+      minutes: 5
+
+# TEST_BLOCK
+- test:
+    timeout:
+      minutes: 5
+    definitions:
+    - repository:
+        metadata:
+          format: Lava-Test Test Definition 1.0
+          name: kernel-version-basic
+          version: "1.0"
+          description: "check kernel version"
+          os:
+            - oe
+          scope:
+            - functional
+        run:
+          steps:
+            - lava-test-case uname --shell uname -a
+      from: inline
+      name: kernel-version-inline
+      path: inline/kernel-version-basic.yaml
