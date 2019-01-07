@@ -1,5 +1,7 @@
 FROM baylibre/lava-slave-base:latest
 
+RUN apt-get update
+
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install cu conmux
 
 COPY configs/lava-slave /etc/lava-dispatcher/lava-slave
