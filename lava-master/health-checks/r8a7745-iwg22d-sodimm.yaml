@@ -1,4 +1,4 @@
-# Copyright (C) 2018, Renesas Electronics Europe Ltd., Patryk Mungai <patryk.mungai-ndungu.kx@renesas.com>
+# Copyright (C) 2019, Renesas Electronics Europe Ltd., Patryk Mungai <patryk.mungai-ndungu.kx@renesas.com>
 # Copyright (C) 2018, Codethink, Ltd., Robert Marshall <robert.marshall@codethink.co.uk>
 # Copyright (C) 2017, Toshiba corp., Daniel Sangorrin <daniel.sangorrin@toshiba.co.jp>
 # SPDX-License-Identifier:	AGPL-3.0
@@ -20,6 +20,13 @@ timeouts:
 priority: medium
 visibility: public
 
+notify:
+  criteria:
+    status: finished
+  recipients:
+  - to:
+     method: email
+     email: cip-testing-results@lists.cip-project.org
 
 # ACTION_BLOCK
 actions:
@@ -30,16 +37,17 @@ actions:
     # despite this being a Debian initramfs, it is not a complete Debian rootfs, so use oe compatibility
     os: oe
     kernel:
-      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/images/r8a7745-iwg22d/v4.4.154-cip28/uImage 
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.4.y-cip-latest/shmobile_defconfig/uImage
       type: uimage
     ramdisk:
-      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/images/r8a7745-iwg22d/RFS/generic-initramfs.cpio.gz
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/generic-initramfs.cpio.gz
       compression: gz
       # the bootloader needs a u-boot header on the modified ramdisk
       add-header: u-boot
     dtb:
-      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/images/r8a7745-iwg22d/v4.4.154-cip28/r8a7745-iwg22d-sodimm.dtb
-      # BOOT_BLOCK
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.4.y-cip-latest/shmobile_defconfig/r8a7745-iwg22d-sodimm.dtb
+
+# BOOT_BLOCK
 - boot:
     auto_login:
       login_prompt: '\(none\) login: '
