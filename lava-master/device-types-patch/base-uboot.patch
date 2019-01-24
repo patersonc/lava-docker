@@ -1,0 +1,18 @@
+--- base-uboot.jinja2	2019-01-17 17:33:49.615871329 +0000
++++ base-uboot-rzg1.jinja2	2019-01-22 16:40:23.828078188 +0000
+@@ -3,6 +3,9 @@
+ {% set base_high_limits = base_high_limits|default(true) %}
+ {% set base_uboot_commands = (
+ "          - setenv autoload no") -%}
++{% set base_uboot_bootm = (
++"          - setenv bootm_low " + uboot_bootm_low|default('0x41e00000') + "
++          - setenv bootm_size " + uboot_bootm_size|default('0x100000') ) %}
+ {% set base_uboot_high_limits =(
+ "          - setenv initrd_high " + uboot_initrd_high|default('0xffffffff') + "
+           - setenv fdt_high " + uboot_fdt_high|default('0xffffffff') ) -%}
+@@ -241,3 +244,5 @@
+           - "setenv bootargs '{{ console_device }}{{ baud_rate }} root={ROOT} {{ base_kernel_args }} {{ base_ip_args }}'"
+ {{ base_uboot_bootcmd }}
+ {% endblock body %}
++
++
