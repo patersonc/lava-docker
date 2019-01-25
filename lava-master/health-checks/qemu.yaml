@@ -1,0 +1,70 @@
+# Copyright (C) 2019, Renesas Electronics Europe Ltd., Patryk Mungai <patryk.mungai-ndungu.kx@renesas.com>
+# SPDX-License-Identifier:	AGPL-3.0
+# This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, version 3.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+device_type: qemu
+
+job_name: qemu x86_64 healthcheck
+timeouts:
+  job:
+    minutes: 10
+  action:
+   minutes: 5
+  actions:
+    power-off:
+      seconds: 30
+priority: high
+visibility: public
+
+context:
+  arch: x86_64
+  cpu: qemu64
+
+# ACTION BLOCK
+actions:
+- deploy:
+    timeout:
+      minutes: 3
+    to: tmpfs
+    os: oe
+    images:
+      kernel:
+        image_arg: '-kernel {kernel} -append "console=ttyS0,115200 root=/dev/ram0 debug verbose"'
+        url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/v4.4.166-cip29/x86_64/bzImage
+      ramdisk:
+        image_arg: '-initrd {ramdisk}'
+        url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/qemu-rootfs.cpio.gz
+
+# BOOT BLOCK
+- boot:
+    timeout:
+      minutes: 5
+    method: qemu
+    media: tmpfs
+    prompts:
+      - '/ #'
+
+# TEST_BLOCK
+- test:
+    timeout:
+      minutes: 5
+    definitions:
+    - repository:
+        metadata:
+          format: Lava-Test Test Definition 1.0
+          name: kernel-version-basic
+          version: "1.0"
+          description: "check kernel version"
+          os:
+            - oe
+          scope:
+            - functional
+        run:
+          steps:
+            - lava-test-case uname --shell uname -a
+      from: inline
+      name: kernel-version-inline
+      path: inline/kernel-version-basic.yaml
