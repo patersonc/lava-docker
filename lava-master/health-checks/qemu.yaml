@@ -33,7 +33,7 @@ actions:
     images:
       kernel:
         image_arg: '-kernel {kernel} -append "console=ttyS0,115200 root=/dev/ram0 debug verbose"'
-        url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/v4.4.166-cip29/x86_64/bzImage
+        url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.4.y-cip-latest/x86_64/bzImage
       ramdisk:
         image_arg: '-initrd {ramdisk}'
         url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/qemu-rootfs.cpio.gz
