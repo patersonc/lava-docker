@@ -1,0 +1,14 @@
+{% extends 'base-uboot.jinja2' %}
+
+{% set console_device = 'ttySC0' %}
+{% set baud_rate = '115200' %}
+{% set device_type = "r8a774c0-ek874" %}
+{% set bootloader_prompt = bootloader_prompt|default('=>') %}
+{% set kernel_file = kernel_file|default('Image') %}
+{% set dtb_file = dtb_file|default('r8a774c0-ek874.dtb') %}
+{% set booti_kernel_addr = '0x48080000' %}
+{% set booti_ramdisk_addr = '0x4cccb400' %}
+{% set booti_dtb_addr = '0x48000000' %}
+{% set uboot_mkimage_arch = 'arm64' %}
+{% set boot_character_delay = 20 %}
+{% set test_character_delay = 20 %}
