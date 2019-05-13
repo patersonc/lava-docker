@@ -3,48 +3,50 @@
 # This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, version 3.
 # This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
 
-# You should have received a copy of the GNU Affero General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+device_type: r8a774c0-ek874
 
-device_type: qemu
-
-job_name: qemu x86_64 healthcheck
+job_name: r8a774c0-ek874 healthcheck
 timeouts:
   job:
     minutes: 10
   action:
    minutes: 5
-  actions:
-    power-off:
-      seconds: 30
 priority: high
 visibility: public
 
-context:
-  arch: x86_64
-  cpu: qemu64
+notify:
+  criteria:
+    status: finished
+  recipients:
+  - to:
+     method: email
+     email: cip-testing-results@lists.cip-project.org
 
-# ACTION BLOCK
+# ACTION_BLOCK
 actions:
 - deploy:
     timeout:
-      minutes: 3
-    to: tmpfs
+      minutes: 2
+    to: tftp
+    kernel:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/arm64/renesas_defconfig/Image
+      type: image
+    ramdisk:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/initramfs_64.cpio.gz
+      compression: gz
+    dtb:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/arm64/renesas_defconfig/r8a774c0-ek874.dtb
     os: oe
-    images:
-      kernel:
-        image_arg: '-kernel {kernel} -append "console=ttyS0,115200 root=/dev/ram0 debug verbose"'
-        url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.4.y-cip-latest/x86_64/bzImage
-      ramdisk:
-        image_arg: '-initrd {ramdisk}'
-        url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/qemu-rootfs.cpio.gz
 
-# BOOT BLOCK
+# BOOT_BLOCK
 - boot:
     timeout:
       minutes: 5
-    method: qemu
-    media: tmpfs
+    method: u-boot
+    commands: ramdisk
     prompts:
+      - 'linaro-test'
+      - 'root@debian:~#'
       - '/ #'
 
 # TEST_BLOCK
