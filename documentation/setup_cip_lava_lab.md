@@ -40,14 +40,20 @@ This will create a:
 
 Please place these in a sensible directory eg. ../certificates.d
 You will need to exchange the public slave key with the public master key. Please
-contact the cip-dev mailing list to obtain the public master key.  
-Place the public master key in your certificates directory and create a dummy
-master public certificate in the certificates directory. It should be named
-*lava.ciplatform.org.key_secret*.
+contact the cip-dev mailing list to obtain the public master key. You will need
+to send the following details:
+- name of your lab/worker (ie. lab-cip-<member_company>)
+- the dispatcher IP of the lab (ie. the IP address of the worker network to which
+  the DUTs are connected to)
+- the lab's public key (as a file)
+
+Once you have obtained the CIP master public key, place this key in your
+certificates directory and create a dummy master private certificate in the
+certificates directory. It should be named *lava.ciplatform.org.key_secret*.
 
 5) Edit the boards.yaml file:
 - Copy the API token you created in step 2 in the place of <generated_lab_token>.
-- Add the filepaths of the zmq keys of the master and and the slave lab in their
+- Add the filepaths of the zmq keys of the master and the slave lab in their
 respective locations.
 - Add details of each board connected to the lab. See the top level README for
 instructions. You will need the following:
@@ -92,13 +98,17 @@ Not all device types are supported by default. Templates for new devices will
 need to be added to the LAVA master. Please submit new templates to the cip-dev
 mailing list.
 
-Before you submit any new device-type templates, please verify that they work. You can varify that they work in LAVA by carrying out the following instructions:
-1) Install lavacli on Debian Stretch or Ubuntu 18.04 and later (if you don't have a compatible OS, please see https://lava.ciplatform.org/api/help/ for an alternative way to use the API)
-2) Create your lavacli config file 
+Before you submit any new device-type templates, please verify that they work.
+You can verify that they work in LAVA by carrying out the following instructions:
+1) Install lavacli on Debian Stretch or Ubuntu 18.04 and later (if you don't
+   have a compatible OS, please see https://lava.ciplatform.org/api/help/ for an
+   alternative way to use the API)
+2) Create your lavacli config file
 ```
 touch ~/.config/lavacli.yaml
 ```
-3) Configure this file to look like the following (note: use the first token created in https://lava.ciplatform.org/api/tokens/)
+3) Configure this file to look like the following (note: use the first token
+   created in https://lava.ciplatform.org/api/tokens/)
 ```
 default:
   uri: https://lava.ciplatform.org/RPC2
@@ -109,4 +119,5 @@ default:
 ```
 lavacli device-types template set <device-type-name> <device-type-name>.yaml
 ```
-NOTE: make sure your device-type templates always follow the following naming scheme: ```<device-type-name>.yaml```
+NOTE: make sure your device-type templates always follow the following naming scheme:
+```<device-type-name>.yaml```
