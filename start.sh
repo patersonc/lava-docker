@@ -3,7 +3,6 @@
 LAVA_DIR="$(cd "$(dirname "$0")"; pwd)"
 BACKUPS_DIR="${LAVA_DIR}/backups"
 SLAVE="$(cat boards.yaml | grep name | grep lab-cip | cut -d : -f 2 | sed -e 's/^[[:space:]]*//')"
-HOST="$(cat boards.yaml | grep host | grep lab-cip | cut -d : -f 2 | sed -e 's/^[[:space:]]*//')"
 ARG="$1"
 
 print_help() {
@@ -37,12 +36,16 @@ read aw
 
 case "${ARG}" in
 	master | all)
+		HOST="lava.ciplatform.org"
 		# restoring backup
 		echo "restoring data from latest backup"
-		cp backup-latest/* output/local/master/backup/
+		cp backup-latest/* output/${HOST}/master/backup/
 		echo "[OK]"
 		echo "Press any key to continue"
 		read aw
+		;;
+	slave)
+		HOST="$(cat boards.yaml | grep host | grep lab-cip | cut -d : -f 2 | sed -e 's/^[[:space:]]*//')"
 		;;
 esac
 

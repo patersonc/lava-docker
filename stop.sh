@@ -5,7 +5,6 @@
 LAVA_DIR="$(cd "$(dirname "$0")"; pwd)"
 BACKUPS_DIR="${LAVA_DIR}/backups"
 SLAVE="$(cat boards.yaml | grep name | grep lab-cip | cut -d : -f 2 | sed -e 's/^[[:space:]]*//')"
-HOST="$(cat boards.yaml | grep host | grep lab-cip | cut -d : -f 2 | sed -e 's/^[[:space:]]*//')"
 ARG="$1"
 
 print_help() {
@@ -24,17 +23,20 @@ print_help() {
 
 case "${ARG}" in
 	master)
+		HOST="lava.ciplatform.org"
 		# first backup
 		echo "Running backup first"
 		./backup.sh
 		echo "[OK]"
 		;;
 	slave)
+		HOST="$(cat boards.yaml | grep host | grep lab-cip | cut -d : -f 2 | sed -e 's/^[[:space:]]*//')"
 		echo "Setting LAVA worker to maintenance"
 		lavacli workers maintenance ${SLAVE}
 		echo "[OK]"
 		;;
 	all)
+		HOST="lava.ciplatform.org"
 		echo "Setting LAVA worker to maintenance"
 		lavacli workers maintenance ${SLAVE}
 		echo "[OK]"
