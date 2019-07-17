@@ -1,0 +1,14 @@
+{% extends 'base-uboot.jinja2' %}
+
+{% set console_device = 'ttySC1' %}
+{% set baud_rate = '115200' %}
+{% set device_type = "r8a77470-iwg23s-sbc" %}
+{% set bootloader_prompt = bootloader_prompt|default('iWave-G23S>') %}
+{% set kernel_file = kernel_file|default('uImage') %}
+{% set dtb_file = dtb_file|default('r8a77470-iwg23s-sbc.dtb') %}
+{% set bootm_kernel_addr = '0x40007fc0' %}
+{% set bootm_ramdisk_addr = '0x41f00000' %}
+{% set bootm_dtb_addr = '0x41d00000' %}
+{% set uboot_mkimage_arch = 'arm' %}
+{% set uboot_bootm_low = '0x41e00000' %}
+{% set uboot_bootm_size = '0x100000' %}
