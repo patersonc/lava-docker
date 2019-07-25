@@ -1,0 +1,75 @@
+# Copyright (C) 2019, Renesas Electronics Europe GmbH, Christopher Feghali <christopher.feghali.xb@renesas.com>
+# SPDX-License-Identifier:	AGPL-3.0
+# This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, version 3.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+device_type: r8a77470-iwg23s-sbc
+
+job_name: r8a77470-iwg23s-sbc healthcheck
+timeouts:
+  job:
+    minutes: 10
+  action:
+   minutes: 5
+priority: medium
+visibility: public
+
+notify:
+  criteria:
+    status: finished
+  recipients:
+  - to:
+     method: email
+     email: cip-testing-results@lists.cip-project.org
+
+# ACTION_BLOCK
+actions:
+- deploy:
+    timeout:
+      minutes: 5
+    to: tftp
+    kernel:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.4.y-cip-latest/shmobile_defconfig/uImage
+      type: uimage
+    ramdisk:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/generic-initramfs.cpio.gz
+      compression: gz
+      # the bootloader needs a u-boot header on the modified ramdisk
+      add-header: u-boot
+    dtb:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.4.y-cip-latest/shmobile_defconfig/r8a77470-iwg23s-sbc.dtb
+
+# BOOT_BLOCK
+- boot:
+    auto_login:
+      login_prompt: '\(none\) login: '
+      username: root
+    prompts:
+      - '\(initramfs\)'
+    method: u-boot
+    commands: ramdisk
+    timeout:
+      minutes: 5
+
+# TEST_BLOCK
+- test:
+    timeout:
+      minutes: 5
+    definitions:
+    - repository:
+        metadata:
+          format: Lava-Test Test Definition 1.0
+          name: kernel-version-basic
+          version: "1.0"
+          description: "check kernel version"
+          os:
+            - oe
+          scope:
+            - functional
+        run:
+          steps:
+            - lava-test-case uname --shell uname -a
+      from: inline
+      name: kernel-version-inline
+      path: inline/kernel-version-basic.yaml
+      lava-signal: kmsg
