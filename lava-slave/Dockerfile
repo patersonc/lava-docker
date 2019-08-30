@@ -30,7 +30,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y install ser2net
 RUN rm /etc/apt/sources.list.d/sid.list
 RUN apt-get update
 
-RUN apt-get -y install lavacli
+RUN apt-get -y install lavacli lavapdu-client
 
 COPY phyhostname /root/
 COPY scripts/setup.sh .
