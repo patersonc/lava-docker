@@ -31,7 +31,7 @@ actions:
     to: tftp
     os: oe
     kernel:
-      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/v4.19.58-cip6-slll/amd64/vmlinuz 
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/v4.19.66-cip9-slll/amd64/vmlinuz 
       type: zimage
     nfsrootfs:
       url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs-slll/rootfs-amd64.tar.gz
@@ -42,6 +42,8 @@ actions:
     auto_login:
       login_prompt: 'ebsy-isar login:'
       username: root
+      password_prompt: 'Password:'
+      password: root 
     prompts:
       - 'root@ebsy-isar:~#'
     method: ipxe
