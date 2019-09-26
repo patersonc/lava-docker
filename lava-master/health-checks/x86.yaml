@@ -71,4 +71,5 @@ actions:
       from: inline
       name: kernel-version-inline
       path: inline/kernel-version-basic.yaml
+      lava-signal: kmsg
 
