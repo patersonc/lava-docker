@@ -31,10 +31,10 @@ actions:
     to: tftp
     os: oe
     kernel:
-      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/v4.19.58-cip6-slll/amd64/vmlinuz 
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/amd64/simatic-ipc227e_defconfig/vmlinuz
       type: zimage
     nfsrootfs:
-      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs-slll/rootfs-amd64.tar.gz
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/rootfs-simatic-ipc227e.tar.gz
       compression: gz
  
 # BOOT_BLOCK
@@ -42,6 +42,8 @@ actions:
     auto_login:
       login_prompt: 'ebsy-isar login:'
       username: root
+      password_prompt: 'Password:'
+      password: root 
     prompts:
       - 'root@ebsy-isar:~#'
     method: ipxe
@@ -69,4 +71,5 @@ actions:
       from: inline
       name: kernel-version-inline
       path: inline/kernel-version-basic.yaml
+      lava-signal: kmsg
 
