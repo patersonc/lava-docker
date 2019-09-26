@@ -31,10 +31,10 @@ actions:
     to: tftp
     os: oe
     kernel:
-      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/v4.19.66-cip9-slll/amd64/vmlinuz 
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/amd64/simatic-ipc227e_defconfig/vmlinuz
       type: zimage
     nfsrootfs:
-      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs-slll/rootfs-amd64.tar.gz
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/rootfs-simatic-ipc227e.tar.gz
       compression: gz
  
 # BOOT_BLOCK

@@ -33,13 +33,13 @@ actions:
     to: tftp
     os: oe
     kernel:
-      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/v4.19.66-cip9-slll/armhf/vmlinuz
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/arm/de0-nano-soc_defconfig/vmlinuz
       type: zimage
     nfsrootfs:
-      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs-slll/rootfs-armhf.tar.gz
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/rootfs-de0-nano-soc.tar.gz
       compression: gz
     dtb:
-      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/v4.19.66-cip9-slll/armhf/socfpga_cyclone5_de0_nano_soc.dtb 
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/arm/de0-nano-soc_defconfig/socfpga_cyclone5_de0_nano_soc.dtb 
 
 # BOOT_BLOCK
 - boot:
