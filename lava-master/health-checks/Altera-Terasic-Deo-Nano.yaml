@@ -8,11 +8,11 @@ job_name: Altera-Terasic-Deo-Nano healthcheck
 
 timeouts:
   job:
-    minutes: 10
+    minutes: 20
   action:
-    minutes: 10
+    minutes: 20
   connection:
-    minutes: 10
+    minutes: 20
 priority: medium
 visibility: public
 
