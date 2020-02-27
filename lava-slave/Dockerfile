@@ -1,5 +1,12 @@
 FROM baylibre/lava-slave-base:latest
 
+# Switch repositories to avoid errors with non-existing amd64_Packages.diff_Index file
+RUN echo "deb http://deb.debian.org/debian/ stretch main contrib non-free \
+  deb http://deb.debian.org/debian/ stretch-updates main contrib non-free \
+  deb http://deb.debian.org/debian-security/ stretch/updates main contrib non-free \
+  deb http://deb.debian.org/debian/ stretch-backports main contrib non-free" > /etc/apt/sources.list
+RUN apt-get update
+
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install cu conmux
 
 COPY configs/lava-slave /etc/lava-dispatcher/lava-slave
