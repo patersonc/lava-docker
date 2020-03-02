@@ -1,0 +1,12 @@
+{# device_type = "zynqmp-zcu102" #}
+{% extends 'base-uboot.jinja2' %}
+{% set bootloader_prompt = bootloader_prompt|default('ZynqMP>') %}
+{% set booti_kernel_addr = '0x80000' %}
+{% set booti_ramdisk_addr = '0x10000000' %}
+{% set booti_dtb_addr = '0x14000000' %}
+{% set base_ip_args = 'ip=dhcp' %}
+{% set uboot_mkimage_arch = 'arm64' %}
+{% set uboot_tftp_commands =
+"          - tftpboot {KERNEL_ADDR} {KERNEL}
+          - tftpboot {RAMDISK_ADDR} {RAMDISK}
+          - tftpboot {DTB_ADDR} {DTB}" -%}

@@ -1,0 +1,70 @@
+# Copyright (C) 2020, Cybertrust Japan Co., Ltd., Hiraku Toyooka <hiraku.toyooka@cybertrust.co.jp>
+# SPDX-License-Identifier:	AGPL-3.0
+# This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, version 3.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+device_type: zynqmp-zcu102
+job_name: zynqmp-zcu102 healthcheck
+
+timeouts:
+  job:
+    minutes: 10
+  action:
+    minutes: 5
+  connection:
+    minutes: 5
+priority: medium
+visibility: public
+
+# ACTION_BLOCK
+actions:
+- deploy:
+    timeout:
+      minutes: 5
+    to: tftp
+    # despite this being a Debian initramfs, it is not a complete Debian rootfs, so use oe compatibility
+    os: oe
+    kernel:
+      url: https://github.com/miraclelinux/ciptesting-files-ctj/raw/master/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/arm64/defconfig/Image
+      type: image
+    ramdisk:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/initramfs_64.cpio.gz
+      compression: gz
+    dtb:
+      url: https://github.com/miraclelinux/ciptesting-files-ctj/raw/master/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/arm64/defconfig/zynqmp-zcu102-rev1.0.dtb
+
+# BOOT_BLOCK
+- boot:
+    timeout:
+      minutes: 5
+    method: u-boot
+    commands: ramdisk
+    prompts:
+      - 'linaro-test'
+      - 'root@debian:~#'
+      - '/ #'
+
+# TEST_BLOCK
+- test:
+    timeout:
+      minutes: 5
+    definitions:
+    - repository:
+        metadata:
+          format: Lava-Test Test Definition 1.0
+          name: kernel-version-basic
+          version: "1.0"
+          description: "check kernel version"
+          os:
+            - oe
+          scope:
+            - functional
+        run:
+          steps:
+            - lava-test-case uname --shell uname -a
+      from: inline
+      name: kernel-version-inline
+      path: inline/kernel-version-basic.yaml
+      lava-signal: kmsg
