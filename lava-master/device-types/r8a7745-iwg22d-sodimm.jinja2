@@ -8,7 +8,7 @@
 {% set dtb_file = dtb_file|default('r8a7745-iwg22d-sodimm.dtb') %}
 {% set bootm_kernel_addr = '0x40007fc0' %}
 {% set bootm_ramdisk_addr = '0x41f00000' %}
-{% set bootm_dtb_addr = '0x41d00000' %}
+{% set bootm_dtb_addr = '0x48000000' %}
 {% set uboot_mkimage_arch = 'arm' %}
 {% set uboot_bootm_low = '0x41e00000' %}
 {% set uboot_bootm_size = '0x100000' %}
