@@ -3,8 +3,8 @@
 # This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, version 3.
 # This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-device_type: Altera-Terasic-Deo-Nano
-job_name: Altera-Terasic-Deo-Nano healthcheck
+device_type: de0-nano-soc
+job_name: de0-nano-soc healthcheck
 
 timeouts:
   job:
@@ -39,7 +39,7 @@ actions:
       url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/rootfs-de0-nano-soc.tar.gz
       compression: gz
     dtb:
-      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/arm/de0-nano-soc_defconfig/socfpga_cyclone5_de0_nano_soc.dtb 
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/arm/de0-nano-soc_defconfig/socfpga_cyclone5_de0_nano_soc.dtb
 
 # BOOT_BLOCK
 - boot:
@@ -47,7 +47,7 @@ actions:
       login_prompt: 'ebsy-isar login:'
       username: root
       password_prompt: 'Password:'
-      password: root      
+      password: root
     prompts:
       - 'root@ebsy-isar:~#'
     method: u-boot
