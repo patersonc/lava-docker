@@ -23,6 +23,14 @@ context:
   arch: x86_64
   cpu: qemu64
 
+notify:
+  criteria:
+    status: finished
+  recipients:
+  - to:
+     method: email
+     email: cip-testing-results@lists.cip-project.org
+
 # ACTION BLOCK
 actions:
 - deploy:

@@ -18,6 +18,14 @@ timeouts:
 priority: medium
 visibility: public
 
+notify:
+  criteria:
+    status: finished
+  recipients:
+  - to:
+     method: email
+     email: cip-testing-results@lists.cip-project.org
+
 # ACTION_BLOCK
 actions:
 - deploy:
