@@ -1,4 +1,4 @@
-FROM baylibre/lava-slave-base:latest
+FROM baylibre/lava-slave-base:2018.11-1_bpo9_1
 
 # Switch repositories to avoid errors with non-existing amd64_Packages.diff_Index file
 RUN echo "deb http://deb.debian.org/debian/ stretch main contrib non-free \
