@@ -39,6 +39,8 @@ RUN apt-get update
 
 RUN apt-get -y install lavacli lavapdu-client
 
+COPY default/* /etc/default/
+
 COPY phyhostname /root/
 COPY scripts/setup.sh .
 
