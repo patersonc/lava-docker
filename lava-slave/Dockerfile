@@ -1,4 +1,4 @@
-FROM baylibre/lava-slave-base:2018.11-1_bpo9_1
+FROM baylibre/lava-slave-base:2019.03_stretch
 
 # Switch repositories to avoid errors with non-existing amd64_Packages.diff_Index file
 RUN echo "deb http://deb.debian.org/debian/ stretch main contrib non-free \
@@ -7,7 +7,7 @@ RUN echo "deb http://deb.debian.org/debian/ stretch main contrib non-free \
   deb http://deb.debian.org/debian/ stretch-backports main contrib non-free" > /etc/apt/sources.list
 RUN apt-get update
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install cu conmux
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install cu conmux telnet
 
 COPY configs/lava-slave /etc/lava-dispatcher/lava-slave
 
@@ -40,7 +40,9 @@ RUN apt-get update
 RUN apt-get -y install lavacli lavapdu-client
 
 # PXE stuff
-RUN apt-get -y install grub-efi-amd64-bin
+RUN if [ $(uname -m) != amd64 ]; then dpkg --add-architecture amd64 && apt-get update; fi
+RUN apt-get -y install grub-efi-amd64-bin:amd64
+RUN if [ $(uname -m) != amd64 ]; then dpkg --remove architecture amd64 && apt-get update; fi
 RUN cd /var/lib/lava/dispatcher/tmp && grub-mknetdir --net-directory=.
 COPY grub.cfg /var/lib/lava/dispatcher/tmp/boot/grub/
 
@@ -49,6 +51,7 @@ COPY default/* /etc/default/
 COPY phyhostname /root/
 COPY scripts/setup.sh .
 
+RUN apt-get -y install patch
 COPY lava-patch/ /root/lava-patch
 RUN cd /usr/lib/python3/dist-packages && for patch in $(ls /root/lava-patch/*patch) ; do patch -p1 < $patch || exit $?;done
 
