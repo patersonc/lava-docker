@@ -1,4 +1,4 @@
-FROM lavasoftware/lava-dispatcher:2019.07
+FROM lavasoftware/lava-dispatcher:2019.09
 
 # Switch repositories to avoid errors with non-existing amd64_Packages.diff_Index file
 RUN echo "deb http://deb.debian.org/debian/ stretch main contrib non-free \
