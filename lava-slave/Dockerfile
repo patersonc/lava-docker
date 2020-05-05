@@ -1,4 +1,4 @@
-FROM baylibre/lava-slave-base:2019.03_stretch
+FROM lavasoftware/lava-dispatcher:2019.07
 
 # Switch repositories to avoid errors with non-existing amd64_Packages.diff_Index file
 RUN echo "deb http://deb.debian.org/debian/ stretch main contrib non-free \
@@ -66,6 +66,7 @@ RUN mkdir -p /root/.config
 
 COPY devices/ /root/devices/
 COPY tags/ /root/tags/
+COPY aliases/ /root/aliases/
 COPY deviceinfo/ /root/deviceinfo/
 
 RUN if [ -x /usr/local/bin/extra_actions ] ; then /usr/local/bin/extra_actions ; fi
@@ -79,4 +80,4 @@ COPY zmq_auth/ /etc/lava-dispatcher/certificates.d/
 
 EXPOSE 69/udp 80
 
-CMD /start.sh
+CMD /usr/local/bin/start.sh
