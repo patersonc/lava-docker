@@ -364,7 +364,7 @@ def main():
     else:
         slaves = workers["slaves"]
     for slave in slaves:
-        keywords_slaves = [ "name", "host", "dispatcher_ip", "remote_user", "remote_master", "remote_address", "remote_rpc_port", "remote_proto", "extra_actions", "zmq_auth_key", "zmq_auth_key_secret", "default_slave", "export_ser2net", "expose_ser2net", "remote_user_token", "zmq_auth_master_key", "expose_ports", "env", "bind_dev", "loglevel", "use_nfs", "arch", "devices", "lava-coordinator", "use_tap", "host_healthcheck", "use_tftp", "use_nbd", "use_overlay_server", "tags" ]
+        keywords_slaves = [ "name", "host", "dispatcher_ip", "remote_user", "remote_master", "remote_address", "remote_rpc_port", "remote_proto", "extra_actions", "zmq_auth_key", "zmq_auth_key_secret", "default_slave", "export_ser2net", "expose_ser2net", "remote_user_token", "zmq_auth_master_key", "expose_ports", "env", "bind_dev", "loglevel", "use_nfs", "arch", "devices", "lava-coordinator", "use_tap", "host_healthcheck", "use_tftp", "use_nbd", "use_overlay_server", "tags", "use_docker" ]
         for keyword in slave:
             if not keyword in keywords_slaves:
                 print("WARNING: unknown keyword %s" % keyword)
@@ -539,12 +539,21 @@ def main():
             use_tftp = worker["use_tftp"]
         if use_tftp:
             dockcomp["services"][name]["ports"].append("69:69/udp")
+        use_docker = False
+        if "use_docker" in worker:
+            use_docker = worker["use_docker"]
+        if use_docker:
+            dockcomp["services"][worker_name]["volumes"].append("/var/run/docker.sock:/var/run/docker.sock")
         # TODO permit to change the range of NBD ports
         use_nbd = True
         if "use_nbd" in worker:
             use_nbd = worker["use_nbd"]
         if use_nbd:
             dockcomp["services"][name]["ports"].append("61950-62000:61950-62000")
+            fp = open("%s/scripts/extra_actions" % workerdir, "a")
+            fp.write("apt-get -y install xnbd-server\n")
+            fp.close()
+            os.chmod("%s/scripts/extra_actions" % workerdir, 0o755)
         use_overlay_server = True
         if "use_overlay_server" in worker:
             use_overlay_server = worker["use_overlay_server"]
@@ -556,6 +565,8 @@ def main():
         if use_nfs:
             dockcomp["services"][worker_name]["volumes"].append("/var/lib/lava/dispatcher/tmp:/var/lib/lava/dispatcher/tmp")
             fp = open("%s/scripts/extra_actions" % workerdir, "a")
+            # LAVA check if this package is installed when doing NFS jobs
+            # So we need to install it, even if it is not used
             fp.write("apt-get -y install nfs-kernel-server\n")
             fp.close()
             os.chmod("%s/scripts/extra_actions" % workerdir, 0o755)
