@@ -40,7 +40,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y install ser2net
 RUN rm /etc/apt/sources.list.d/sid.list
 RUN apt-get update
 
-RUN apt-get -y install lavacli lavapdu-client
+RUN apt-get -y install lavacli lavapdu-client wget
 
 # PXE stuff
 RUN if [ $(uname -m) != amd64 ]; then dpkg --add-architecture amd64 && apt-get update; fi
