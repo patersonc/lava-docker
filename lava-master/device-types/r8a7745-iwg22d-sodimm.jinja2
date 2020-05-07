@@ -14,3 +14,16 @@
 {% set uboot_bootm_size = '0x100000' %}
 {% set boot_character_delay = 20 %}
 {% set test_character_delay = 20 %}
+{% set uboot_error_messages = [
+  'Resetting CPU',
+  'Must RESET board to recover',
+  'Retry time exceeded; starting again',
+  'ERROR: The remote end did not respond in time.',
+  'File not found',
+  'Bad Linux ARM64 Image magic!',
+  'Wrong Ramdisk Image Format',
+  'Ramdisk image is corrupt or invalid',
+  'ERROR: Failed to allocate',
+  'TFTP error: trying to overwrite reserved memory'
+  'ether_avb: alloc failed'
+] %}
