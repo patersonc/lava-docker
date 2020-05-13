@@ -6,7 +6,8 @@
 {% set booti_dtb_addr = '0x14000000' %}
 {% set base_ip_args = 'ip=dhcp' %}
 {% set uboot_mkimage_arch = 'arm64' %}
-{% set uboot_tftp_commands =
-"          - tftpboot {KERNEL_ADDR} {KERNEL}
-          - tftpboot {RAMDISK_ADDR} {RAMDISK}
-          - tftpboot {DTB_ADDR} {DTB}" -%}
+{% set uboot_tftp_commands = [
+    "setenv loadkernel 'tftpboot {KERNEL_ADDR} {KERNEL}'",
+    "setenv loadinitrd 'tftpboot {RAMDISK_ADDR} {RAMDISK}'",
+    "setenv loadfdt 'tftpboot {DTB_ADDR} {DTB}'"]
+-%}
