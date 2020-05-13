@@ -14,11 +14,17 @@ fi
 if [ -e /root/backup/db_lavaserver ];then
 	echo "Restore database from backup"
 	sudo -u postgres psql < /root/backup/db_lavaserver || exit $?
-	lava-server manage migrate || exit $?
+	yes yes | lava-server manage migrate || exit $?
 	echo "Restore jobs output from backup"
 	rm -r /var/lib/lava-server/default/media/job-output/*
+
+        # allow using different folder for tar operations (/tmp by default)
+        TMPDIR=${TMPDIR:-/tmp}
+
 	tar xzf /root/backup/joboutput.tar.gz || exit $?
 fi
+	lava-server manage makemigrations
+	yes yes | lava-server manage migrate || exit $?
 
 if [ -e /root/backup/devices.tar.gz ];then
 	echo "INFO: Restoring devices files"
@@ -55,12 +61,24 @@ if [ -e /root/lava-users ];then
 		if [ $SUPERUSER -eq 1 ];then
 			USER_OPTION="$USER_OPTION --superuser"
 		fi
-		lava-server manage users list | grep -q "[[:space:]]$USER$"
+		lava-server manage users list --all > /tmp/allusers
+		if [ $? -ne 0 ];then
+			echo "ERROR: cannot generate user list"
+			exit 1
+		fi
+		#filter first name/last name (enclose by "()")
+		sed -i 's,[[:space:]](.*$,,' /tmp/allusers
+		grep -q "[[:space:]]${USER}$" /tmp/allusers
 		if [ $? -eq 0 ];then
 			echo "Skip already existing $USER DEBUG(with $TOKEN / $PASSWORD / $USER_OPTION)"
 		else
 			echo "Adding username $USER DEBUG(with $TOKEN / $PASSWORD / $USER_OPTION)"
-			lava-server manage users add --passwd $PASSWORD $USER_OPTION $USER || exit 1
+			lava-server manage users add --passwd $PASSWORD $USER_OPTION $USER
+			if [ $? -ne 0 ];then
+				echo "ERROR: Adding user $USER"
+				cat /tmp/allusers
+				exit 1
+			fi
 			if [ ! -z "$TOKEN" ];then
 				echo "Adding token to user $USER"
 				lava-server manage tokens add --user $USER --secret $TOKEN || exit 1
@@ -139,7 +157,12 @@ mkdir -p /root/.lavadocker/
 if [ -e /root/device-types ];then
 	for i in $(ls /root/device-types/*jinja2)
 	do
+		if [ -e /etc/lava-server/dispatcher-config/device-types/$(basename $i) ];then
+			echo "WARNING: overwriting device-type $i"
+			diff -u "/etc/lava-server/dispatcher-config/device-types/$(basename $i)" $i
+		fi
 		cp $i /etc/lava-server/dispatcher-config/device-types/
+		chown lavaserver:lavaserver /etc/lava-server/dispatcher-config/device-types/$(basename $i)
 		devicetype=$(basename $i |sed 's,.jinja2,,')
 		lava-server manage device-types list | grep -q "[[:space:]]$devicetype[[:space:]]"
 		if [ $? -eq 0 ];then

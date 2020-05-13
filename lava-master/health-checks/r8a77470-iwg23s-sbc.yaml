@@ -60,7 +60,6 @@ actions:
         metadata:
           format: Lava-Test Test Definition 1.0
           name: kernel-version-basic
-          version: "1.0"
           description: "check kernel version"
           os:
             - oe

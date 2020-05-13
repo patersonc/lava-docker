@@ -21,7 +21,7 @@ notify:
   recipients:
   - to:
      method: email
-     email: cip-testing-results@lists.cip-project.org 
+     email: cip-testing-results@lists.cip-project.org
 
 # ACTION_BLOCK
 actions:
@@ -36,14 +36,14 @@ actions:
     nfsrootfs:
       url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/rootfs-simatic-ipc227e.tar.gz
       compression: gz
- 
+
 # BOOT_BLOCK
 - boot:
     auto_login:
       login_prompt: 'ebsy-isar login:'
       username: root
       password_prompt: 'Password:'
-      password: root 
+      password: root
     prompts:
       - 'root@ebsy-isar:~#'
     method: ipxe
@@ -59,7 +59,6 @@ actions:
         metadata:
           format: Lava-Test Test Definition 1.0
           name: kernel-version-basic
-          version: "1.0"
           description: "check kernel version"
           os:
             - oe

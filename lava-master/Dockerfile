@@ -1,36 +1,50 @@
-FROM baylibre/lava-master-base:latest
+FROM lavasoftware/lava-server:2020.02
+
+RUN apt-get update && apt-get -y install sudo lava-coordinator git
 
 COPY backup /root/backup/
 
-COPY configs/tftpd-hpa /etc/default/tftpd-hpa
+COPY default/* /etc/default/
 
 RUN git clone https://github.com/BayLibre/lava-healthchecks.git
 RUN cp lava-healthchecks/health-checks/* /etc/lava-server/dispatcher-config/health-checks/
 COPY health-checks/* /etc/lava-server/dispatcher-config/health-checks/
+RUN if [ -e /etc/lava-server/dispatcher-config/health-checks/healthcheck_url ];then sed -i "s,http.*blob/master,$(cat /etc/lava-server/dispatcher-config/health-checks/healthcheck_url)," /etc/lava-server/dispatcher-config/health-checks/* && sed -i 's,?.*$,,' /etc/lava-server/dispatcher-config/health-checks/* ;fi
+RUN chown -R lavaserver:lavaserver /etc/lava-server/dispatcher-config/health-checks/
 
 COPY devices/ /root/devices/
 COPY device-types/ /root/device-types/
 COPY users/ /root/lava-users/
 COPY groups/ /root/lava-groups/
 COPY tokens/ /root/lava-callback-tokens/
-COPY scripts/setup.sh /
+COPY entrypoint.d/*sh /root/entrypoint.d/
 
 COPY settings.conf /etc/lava-server/
 
-COPY device-types-patch/ /root/device-types-patch/
-RUN cd /etc/lava-server/dispatcher-config/device-types/ && for patch in $(ls /root/device-types-patch/*patch) ; do sed -i 's,lava_scheduler_app/tests/device-types/,,' $patch && patch < $patch || exit $?; done
-
-RUN chown -R lavaserver:lavaserver /etc/lava-server/dispatcher-config/
-
 COPY lava-patch/ /root/lava-patch
-RUN cd /usr/lib/python3/dist-packages && for patch in $(ls /root/lava-patch/*patch) ; do patch -p1 < $patch || exit $?;done
+RUN cd /usr/lib/python3/dist-packages && for patch in $(ls /root/lava-patch/*patch| sort) ; do echo $patch && patch -p1 < $patch || exit $?;done
+
+COPY device-types-patch/ /root/device-types-patch/
+RUN cd /etc/lava-server/dispatcher-config/device-types/ && for patch in $(ls /root/device-types-patch/*patch) ; do sed -i 's,lava_scheduler_app/tests/device-types/,,' $patch && echo $patch && patch < $patch || exit $?; done
+RUN chown -R lavaserver:lavaserver /etc/lava-server/dispatcher-config/device-types/
 
 COPY zmq_auth/ /etc/lava-dispatcher/certificates.d/
 
 COPY lava_http_fqdn /root/
 
 COPY env/ /etc/lava-server/dispatcher.d/
+RUN chown -R lavaserver:lavaserver /etc/lava-server/dispatcher.d/
 
-EXPOSE 69/udp 80 3079 5555 5556
+COPY apache2/ /etc/apache2/
 
-CMD /start.sh && while [ true ];do sleep 365d; done
+# Fixes 'postgresql ERROR:  invalid locale name: "en_US.UTF-8"' when restoring a backup
+RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && locale-gen en_US.UTF-8
+
+# TODO: send this fix to upstream
+RUN sed -i 's,find /root/entrypoint.d/ -type f,find /root/entrypoint.d/ -type f | sort,' /root/entrypoint.sh
+# TODO: send this fix to upstream
+RUN sed -i 's,pidfile =.*,pidfile = "/run/lava-coordinator/lava-coordinator.pid",' /usr/bin/lava-coordinator
+
+EXPOSE 3079 5555 5556
+
+CMD /root/entrypoint.sh && while [ true ];do sleep 365d; done

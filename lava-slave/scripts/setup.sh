@@ -10,19 +10,27 @@ if [ -z "$LAVA_MASTER_URI" ];then
 	exit 11
 fi
 
+# Install PXE
+OPWD=$(pwd)
+cd /var/lib/lava/dispatcher/tmp && grub-mknetdir --net-directory=.
+cp /root/grub.cfg /var/lib/lava/dispatcher/tmp/boot/grub/
+cd $OPWD
+
+lavacli identities add --uri $LAVA_MASTER_BASEURI --token $LAVA_MASTER_TOKEN --username $LAVA_MASTER_USER default
+
 echo "Dynamic slave for $LAVA_MASTER ($LAVA_MASTER_URI)"
 LAVACLIOPTS="--uri $LAVA_MASTER_URI"
 
 # do a sort of ping for letting master to be up
-TIMEOUT=300
+TIMEOUT=1200
 while [ $TIMEOUT -ge 1 ];
 do
 	STEP=2
-	lavacli $LAVACLIOPTS device-types list 2>/dev/null >/dev/null
+	lavacli $LAVACLIOPTS device-types list >/dev/null
 	if [ $? -eq 0 ];then
 		TIMEOUT=0
 	else
-		echo "Wait for master...."
+		echo "Wait for master.... (${TIMEOUT}s remains)"
 		sleep $STEP
 	fi
 	TIMEOUT=$(($TIMEOUT-$STEP))
@@ -42,10 +50,12 @@ fi
 
 lavacli $LAVACLIOPTS device-types list > /tmp/device-types.list
 if [ $? -ne 0 ];then
+	echo "ERROR: fail to list device-types"
 	exit 1
 fi
 lavacli $LAVACLIOPTS devices list -a > /tmp/devices.list
 if [ $? -ne 0 ];then
+	echo "ERROR: fail to list devices"
 	exit 1
 fi
 for worker in $(ls /root/devices/)
@@ -97,10 +107,14 @@ do
 		if [ $? -eq 0 ];then
 			echo "$devicename already present"
 			#verify if present on another worker
-			#TODO
-			lavacli $LAVACLIOPTS devices show $devicename |grep ^worker |grep -q $worker
-			if [ $? -ne 0 ];then
-				echo "ERROR: $devicename already present on another worker"
+			lavacli $LAVACLIOPTS devices show $devicename |grep ^worker > /tmp/current-worker
+			if [ $? -ne 0 ]; then
+				CURR_WORKER=""
+			else
+				CURR_WORKER=$(cat /tmp/current-worker | sed '^.* ,,')
+			fi
+			if [ ! -z "$CURR_WORKER" -a "$CURR_WORKER" != "$worker" ];then
+				echo "ERROR: $devicename already present on another worker $CURR_WORKER"
 				exit 1
 			fi
 			DEVICE_HEALTH=$(grep "$devicename[[:space:]]" /tmp/devices.list | sed 's/.*,//')
@@ -133,6 +147,22 @@ do
 			done < /root/tags/$devicename
 		fi
 	done
+done
+
+for devicetype in $(ls /root/aliases/)
+do
+	lavacli $LAVACLIOPTS device-types aliases list $devicetype > /tmp/device-types-aliases-$devicetype.list
+	while read alias
+	do
+		grep -q " $alias$" /tmp/device-types-aliases-$devicetype.list
+		if [ $? -eq 0 ];then
+			echo "DEBUG: $alias for $devicetype already present"
+			continue
+		fi
+		echo "DEBUG: Add alias $alias to $devicetype"
+		lavacli $LAVACLIOPTS device-types aliases add $devicetype $alias || exit $?
+		echo " $alias" >> /tmp/device-types-aliases-$devicetype.list
+	done < /root/aliases/$devicetype
 done
 
 if [ -e /etc/lava-dispatcher/certificates.d/$(hostname).key ];then

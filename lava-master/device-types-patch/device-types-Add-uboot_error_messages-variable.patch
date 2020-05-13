@@ -1,0 +1,53 @@
+From 8c240fa3d60a681ea14c6184c4a65b84a8089e6d Mon Sep 17 00:00:00 2001
+From: Chris Paterson <chris.paterson2@renesas.com>
+Date: Thu, 7 May 2020 16:11:38 +0100
+Subject: [PATCH] device-types: Add uboot_error_messages variable
+
+The 'uboot_error_messages' variable allows device-type templates to set
+their own list of u-boot error messages as required if the default set is
+not appropriate. For example it may be required that one of the default
+error messages is ignored.
+
+Usage example:
+{% set uboot_error_messages = [
+  'Resetting CPU',
+  'Must RESET board to recover',
+  'TIMEOUT'
+] %}
+
+The 'uboot_extra_error_message' variable can still be used in conjunction
+with 'uboot_error_messages'.
+
+Signed-off-by: Chris Paterson <chris.paterson2@renesas.com>
+---
+ etc/dispatcher-config/device-types/base.jinja2 | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/etc/dispatcher-config/device-types/base.jinja2 b/etc/dispatcher-config/device-types/base.jinja2
+index 8caa67798abc..9f4583b039af 100644
+--- a/etc/dispatcher-config/device-types/base.jinja2
++++ b/etc/dispatcher-config/device-types/base.jinja2
+@@ -91,6 +91,12 @@ constants:
+     interrupt_ctrl_list: {{ interrupt_ctrl_list  | default([]) }}
+     interrupt-newline: {{ uboot_interrupt_newline | default(True) }}
+     final-message: '{{ uboot_final_message | default("Starting kernel") }}'
++{% if uboot_error_messages %}
++    error-messages:
++{% for message in uboot_error_messages %}
++      - '{{ message }}'
++{% endfor %}
++{% else %}
+     error-messages:
+       - 'Resetting CPU'
+       - 'Must RESET board to recover'
+@@ -104,6 +110,7 @@ constants:
+       - 'Ramdisk image is corrupt or invalid'
+       - 'ERROR: Failed to allocate'
+       - 'TFTP error: trying to overwrite reserved memory'
++{% endif %}
+ {% if uboot_extra_error_message %}
+       - '{{ uboot_extra_error_message }}'
+ {% endif %}
+-- 
+2.26.2
+

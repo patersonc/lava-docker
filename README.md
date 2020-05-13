@@ -56,7 +56,7 @@ You will see it in the "All Jobs" list: http://localhost:10080/scheduler/alljobs
 To add a board you need to find its device-type, standard naming is to use the same as the official kernel DT name.
 (But a very few DUT differ from that)
 
-You could check in https://github.com/Linaro/lava-server/tree/release/lava_scheduler_app/tests/device-types if you find yours.
+You could check in https://github.com/Linaro/lava/tree/master/etc/dispatcher-config/device-types if you find yours.
 
 Example:
 For a beagleboneblack, the device-type is beaglebone-black (Even if official DT name is am335x-boneblack)
@@ -219,8 +219,18 @@ masters:
     zmq_auth_key:		optional path to a public ZMQ key
     zmq_auth_key_secret:	optional path to a private ZMQ key
     slave_keys:			optional path to a directory with slaves public key. Usefull when you want to create a master without slaves nodes in boards.yaml.
+    lava-coordinator:		Does the master should ran a lava-coordinator and export its port
     persistent_db: True/False	(default False) Is the postgres DB is persistent over reboot
     http_fqdn:			The FQDN used to access the LAVA web interface. This is necessary if you use https otherwise you will issue CSRF errors.
+    healthcheck_url:		Hack healthchecks hosting URL. See hosting healthchecks below
+    allowed_hosts:		A list of FQDN used to access the LAVA master
+    - "fqdn1"
+    - "fqdn2"
+    loglevel:
+      lava-logs: DEBUG/INFO/WARN/ERROR			(optional) select the loglevel of lava-logs (default to DEBUG)
+      lava-slave: DEBUG/INFO/WARN/ERROR			(optional) select the loglevel of lava-slave (default to DEBUG)
+      lava-master: DEBUG/INFO/WARN/ERROR		(optional) select the loglevel of lava-master (default to DEBUG)
+      lava-server-gunicorn: DEBUG/INFO/WARN/ERROR	(optional) select the loglevel of lava-server-gunicorn (default to DEBUG)
     users:
     - name: LAVA username
       token: The token of this user 	(optional)
@@ -237,6 +247,14 @@ masters:
     - username: The LAVA user owning the token below. (This user should be created via users:)
       token: The token for this callback
       description: The description of this token. This string could be used with LAVA-CI.
+    smtp:			WARNING: Usage of an SMTP server makes it mandatory for each user to have an email address
+      email_host:		The host to use for sending email
+      email_host_user:		Username to use for the SMTP server
+      email_host_password:	Password to use for the SMTP server
+      email_port:		Port to use for the SMTP server (default: 25)
+      email_use_tls:		Whether to use a TLS (secure) connection when talking to the SMTP server
+      email_use_ssl:		Whether to use an implicit TLS (secure) connection when talking to the SMTP server
+      email_backend:		The backend to use for sending emails (default: 'django.core.mail.backends.smtp.EmailBackend')
     slaveenv:			A list of environment to pass to slave
       - name: slavename		The name of slave (mandatory)
         env:
@@ -257,7 +275,18 @@ slaves:
     remote_proto:		http(default) or https
     default_slave:		Does this slave is the default slave where to add boards (default: lab-slave-0)
     bind_dev:			Bind /dev from host to slave. This is needed when using some HID PDU
+    use_tftp:			Does LAVA need a TFTP server (default True)
+    use_nbd:			Does LAVA need a NBD server (default True)
+    use_overlay_server:		Does LAVA need an overlay server (default True)
+    use_nfs:			Does the LAVA dispatcher will run NFS jobs
+    use_tap:			Does TAP netdevices could be used
+    use_docker:			Permit to use docker commands in slave
+    arch:			The arch of the worker (if not x86_64), only accept arm64
+    host_healthcheck:		If true, enable the optional healthcheck container. See hosting healthchecks below
+    lava-coordinator:		Does the slave should ran a lava-coordinator
     expose_ser2net:		Do ser2net ports need to be available on host
+    custom_volumes:
+      - "name:path"		Add a custom volume
     expose_ports:		Expose port p1 on the host to p2 on the worker slave.
       - p1:p2
     extra_actions:		An optional list of action to do at end of the docker build
@@ -265,6 +294,15 @@ slaves:
     env:
       - line1			A list of line to set as environment (See /etc/lava-server/env.yaml for examples)
       - line2
+    tags:			(optional) List of tag to set on all devices attached to this slave
+    - tag1
+    - tag2
+    devices:			A list of devices which need UDEV rules
+      - name:			The name of the device
+        vendorid:		The VID of the UART (Formated as 0xXXXX)
+        productid:		the PID of the UART (Formated as 0xXXXX)
+        serial:			The serial number of the device if the device got one
+        devpath:		The UDEV devpath to this device if more than one is present
 
 boards:
   - name: devicename	Each board must be named by their device-type as "device-type-XX" (where XX is a number)
@@ -273,11 +311,16 @@ boards:
     kvm: (For qemu only) Does the qemu could use KVM (default: no)
     uboot_ipaddr:	(optional) a static IP to set in uboot
     uboot_macaddr:	(Optional) the MAC address to set in uboot
-    custom_option:	(optional) All following strings will be directly append to devicefile
+    custom_option:	(optional) All following strings will be directly append to devicefile included in {% opt %}
     - "set x=1"
+    raw_custom_option:	(optional) All following strings will be directly append to devicefile
+    - "{% set x=1 %}"
     tags:		(optional) List of tag to set on this device
     - tag1
     - tag2
+    aliases:		(optional) List of aliases to set on the DEVICE TYPE.
+    - alias1
+    - alias2
     user:		(optional) Name of user owning the board (LAVA default is admin) user is exclusive with group
     group:		(optional) Name of group owning the board (no LAVA default) group is exclusive with user
 # One of uart or connection_command must be choosen
@@ -289,7 +332,7 @@ boards:
       interfacenum:	(optional) The interfacenumber of the serial. (Used with two serial in one device)
       use_conmux:	True/False (Use conmux-console instead of ser2net)
       use_ser2net: 	True/False (Deprecated, ser2net is the default uart handler)
-      ser2net_options	(optional) A list of ser2net options to add
+      ser2net_options:	(optional) A list of ser2net options to add
         - option1
         - option2
       use_screen: 	True/False (Use screen via ssh instead of ser2net)
@@ -312,6 +355,12 @@ Example:
 Bus 001 Device 054: ID 0403:6001 Future Technology Devices International, Ltd FT232 Serial (UART) IC
 ```
 This device must use "0403" for idvendor and 6001 for idproduct.
+* Some boards reset serial on power on. This can cause ser2net/telnet to disconnect resulting in the LAVA Worker being unable to program the board. This may be mitigated by passing LOCAL as an option to ser2net in the boards.yaml.
+Example:
+```
+      ser2net_options:
+        - LOCAL
+```
 
 Note on connection_command: connection_command is for people which want to use other custom way than ser2net to handle the console.
 
@@ -356,8 +405,8 @@ docker-compose up -d
 
 ## Proxy cache (Work in progress)
 A squid docker is provided for caching all LAVA downloads (image, dtb, rootfs, etc...)<br/>
-You have to uncomment a line in lava-master/Dockerfile to enable it.<br/>
 For the moment, it is unsupported and unbuilded.
+For using an external squid server see "How to made LAVA slave use a proxy" below
 
 ## Backporting LAVA patches
 All upstream LAVA patches could be backported by placing them in lava-master/lava-patch/
@@ -376,10 +425,14 @@ For restoring this backup, simply cp backup-20180704_1206/* output/local/master/
 ## Upgrading from a previous lava-docker
 For upgrading between two LAVA version, the only method is:
 - backup data by running ./backup.sh on the host running the master (See Backups / restore)
-- checkout the new lava-docker and your boards.yaml
+- checkout the new lava-docker and update your boards.yaml
+- Move the old output directory away
 - run lavalab-gen.sh
 - copy your backup data in output/yourhost/master/backup directory
-- build and run docker-compose
+- build via docker-compose build
+- Stop the old docker via docker-compose down
+- Run the new version via docker-compose up -d
+- Check everything is ok via docker-compose logs -f
 
 ## Security
 Note that this container provides defaults which are unsecure. If you plan on deploying this in a production enviroment please consider the following items:
@@ -395,6 +448,12 @@ For building an arm64 lava-docker, some little trick are necesssary:
 
 For building lava-xxx-base images
 - replace "bitnami/minideb" by "arm64v8/debian" on lava-master-base/lava-slave-base dockerfiles.
+
+# How to ran NFS jobs
+You need to se use_nfs: True on slave that will ran NFS jobs.
+A working NFS server must be working on the host.
+Furthermore, you must create a /var/lib/lava/dispatcher/tmp directory on the host and export it like:
+/var/lib/lava/dispatcher/tmp 192.168.66.0/24(no_root_squash,rw,no_subtree_check)
 
 ## How to add custom LAVA patchs
 You can add custom or backported LAVA patchs in lava-master/lava-patch
@@ -412,6 +471,44 @@ Add env to a slave like:
 slave:
   env:
   - "http_proxy: http://dns:port"
+Or on master via
+    slaveenv:
+    - name: lab
+      env:
+       - "http_proxy: http://squid_IP_address:3128"
+       - "https_proxy: http://squid_IP_address:3128"
+
+
+## How to use a board which uses PXE ?
+All boards which uses PXE, could be used with LAVA via grub.
+But you need to add a configuration in your DHCP server for that board.
+This configuration need tell to the PXE to get GRUB for the dispatcher TFTP.
+EXample for an upsquare and a dispatcher availlable at 192.168.66.1:
+```
+  	host upsquare {
+		hardware ethernet 00:07:32:54:41:bb;
+		filename "/boot/grub/x86_64-efi/core.efi";
+		next-server 192.168.66.1;
+	}
+```
+
+## How to host healthchecks
+Healthchecks jobs needs externals ressources (rootfs, images, etc...).
+By default, lava-docker healthchecks uses ones hosted on our github, but this imply usage of external networks and some bandwith.
+For hosting locally healthchecks files, you can set healthcheck_host on a slave for hosting them.
+Note that doing that bring some constraints:
+- Since healthchecks jobs are hosted by the master, The healthcheck hostname must be the same accross all slaves.
+- You need to set the base URL on the master via healthcheck_url
+- If you have qemu devices, Since they are inside the docker which provides an internal DNS , you probably must use the container("healthcheck") name as hostname.
+- In case of a simple setup, you can use the slave IP as healthcheck_url
+- In more complex setup (slave sprayed on different site with different network subnets) you need to set a DNS server for having the same DNS availlable on all sites.
+
+For setting a DNS server, the easiest way is to use dnsmasq and add in /etc/hosts "healtcheck ipaddressoftheslave"
+
+Example:
+One master and slave on DC A, and one slave on DC B.
+Both slave need to have healthcheck_host to true and master will have healthcheck_url set to healthcheck:8080
+You have to add a DNS server on both slave with an healthcheck entry.
 
 ## Bugs, Contact
 The prefered way to submit bugs are via the github issue tracker
