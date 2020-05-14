@@ -1,0 +1,86 @@
+# Copyright (c) 2020, DENX Software Engineering GmbH, Harald Seiler <hws@denx.de>
+# SPDX-License-Identifier:      AGPL-3.0
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Affero General Public License as published by the Free
+# Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.
+
+device_type: beaglebone-black
+job_name: beaglebone-black healthcheck
+
+timeouts:
+  job:
+    minutes: 20
+  action:
+    minutes: 20
+  connection:
+    minutes: 20
+  actions:
+    power-off:
+      seconds: 30
+priority: medium
+visibility: public
+
+notify:
+  criteria:
+    status: finished
+  recipients:
+  - to:
+     method: email
+     email: cip-testing-results@lists.cip-project.org
+
+
+# ACTION_BLOCK
+actions:
+- deploy:
+    timeout:
+      minutes: 20
+    to: tftp
+    os: oe
+    kernel:
+      url: https://github.com/montjoie/lava-healthchecks-binary/blob/master/stable/linux-5.0.y/v5.0.21/arm/omap2plus_defconfig/gcc-8/zImage?raw=true
+      type: zimage
+    ramdisk:
+      url: https://github.com/montjoie/lava-healthchecks-binary/blob/master/images/rootfs/buildroot/kci-2018.11/armel/base/rootfs.cpio.gz?raw=true
+      compression: gz
+    modules:
+      url: https://github.com/montjoie/lava-healthchecks-binary/blob/master/stable/linux-5.0.y/v5.0.21/arm/omap2plus_defconfig/gcc-8/modules.tar.xz?raw=true
+      compression: xz
+    dtb:
+      url: https://github.com/montjoie/lava-healthchecks-binary/blob/master/stable/linux-5.0.y/v5.0.21/arm/omap2plus_defconfig/gcc-8/dtbs/am335x-boneblack.dtb?raw=true
+
+# BOOT_BLOCK
+- boot:
+    prompts:
+      - '/ #'
+    method: u-boot
+    commands: ramdisk
+    timeout:
+      minutes: 20
+
+# TEST_BLOCK
+- test:
+    timeout:
+      minutes: 5
+    definitions:
+    - repository:
+        metadata:
+          format: Lava-Test Test Definition 1.0
+          name: kernel-version-basic
+          version: "1.0"
+          description: "check kernel version"
+          os:
+            - oe
+          scope:
+            - functional
+        run:
+          steps:
+            - lava-test-case uname --shell uname -a
+      from: inline
+      name: kernel-version-inline
+      path: inline/kernel-version-basic.yaml
+      lava-signal: kmsg
