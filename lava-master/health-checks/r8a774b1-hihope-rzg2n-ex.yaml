@@ -1,0 +1,72 @@
+# Copyright (C) 2020, Renesas Electronics Europe GmbH, Chris Paterson <chris.paterson2@renesas.com>
+# SPDX-License-Identifier:    AGPL-3.0
+# This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, version 3.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+device_type: r8a774b1-hihope-rzg2n-ex
+
+job_name: r8a774b1-hihope-rzg2n-ex healthcheck
+timeouts:
+  job:
+    minutes: 10
+  action:
+   minutes: 5
+priority: high
+visibility: public
+
+notify:
+  criteria:
+    status: finished
+  recipients:
+  - to:
+     method: email
+     email: cip-testing-results@lists.cip-project.org
+
+# ACTION_BLOCK
+actions:
+- deploy:
+    timeout:
+      minutes: 2
+    to: tftp
+    kernel:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/arm64/renesas_defconfig/Image
+      type: image
+    ramdisk:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/initramfs_64.cpio.gz
+      compression: gz
+    dtb:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/arm64/renesas_defconfig/r8a774b1-hihope-rzg2n-ex.dtb
+    os: oe
+
+
+#BOOT_BLOCK
+- boot:
+    timeout:
+      minutes: 5
+    method: u-boot
+    commands: ramdisk
+    prompts:
+      - 'linaro-test'
+      - 'root@debian:~#'
+      - '/ #'
+
+# TEST_BLOCK
+- test:
+    timeout:
+      minutes: 5
+    definitions:
+    - repository:
+        metadata:
+          format: Lava-Test Test Definition 1.0
+          name: kernel-version-basic
+          description: "check kernel version"
+          os:
+            - oe
+          scope:
+            - functional
+        run:
+          steps:
+            - lava-test-case uname --shell uname -a
+      from: inline
+      name: kernel-version-inline
+      path: inline/kernel-version-:basic.yaml
