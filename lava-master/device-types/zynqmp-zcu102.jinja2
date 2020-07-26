@@ -11,3 +11,5 @@
     "tftpboot {RAMDISK_ADDR} {RAMDISK}",
     "tftpboot {DTB_ADDR} {DTB}"]
 -%}
+{% set console_device = 'ttyPS0' %}
+{% set baud_rate = '115200' %}
