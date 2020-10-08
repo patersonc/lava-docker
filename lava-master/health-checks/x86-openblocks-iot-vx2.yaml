@@ -1,0 +1,73 @@
+# Copyright (c) 2019, Mentor Graphics, a Siemens business, Gumansingh Smita <Smita_Gumansingh@mentor.com>
+# SPDX-License-Identifier:      AGPL-3.0
+# This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, version 3.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+device_type: x86-openblocks-iot-vx2
+job_name: x86-openblocks-iot-vx2 health-check
+timeouts:
+  job:
+    minutes: 20
+  action:
+    minutes: 20
+  connection:
+    minutes: 10
+priority: medium
+visibility: public
+
+notify:
+  criteria:
+    status: finished
+  recipients:
+  - to:
+     method: email
+     email: cip-testing-results@lists.cip-project.org
+
+# ACTION_BLOCK
+actions:
+- deploy:
+    timeout:
+      minutes: 20
+    to: tftp
+    os: oe
+    kernel:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/amd64/simatic-ipc227e_defconfig/vmlinuz
+      type: zimage
+    nfsrootfs:
+      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/rootfs-simatic-ipc227e.tar.gz
+      compression: gz
+
+# BOOT_BLOCK
+- boot:
+    auto_login:
+      login_prompt: 'ebsy-isar login:'
+      username: root
+      password_prompt: 'Password:'
+      password: root
+    prompts:
+      - 'root@ebsy-isar:~#'
+    method: ipxe
+    commands: nfs
+    timeout:
+      minutes: 10
+# TEST_BLOCK
+- test:
+    timeout:
+      minutes: 5
+    definitions:
+    - repository:
+        metadata:
+          format: Lava-Test Test Definition 1.0
+          name: kernel-version-basic
+          description: "check kernel version"
+          os:
+            - oe
+          scope:
+            - functional
+        run:
+          steps:
+            - lava-test-case uname --shell uname -a
+      from: inline
+      name: kernel-version-inline
+      path: inline/kernel-version-basic.yaml
+      lava-signal: kmsg
