@@ -1,4 +1,4 @@
-FROM lavasoftware/lava-server:2020.02
+FROM lavasoftware/lava-server:2020.07
 
 RUN apt-get update && apt-get -y install sudo lava-coordinator git
 
@@ -25,8 +25,7 @@ COPY lava-patch/ /root/lava-patch
 RUN cd /usr/lib/python3/dist-packages && for patch in $(ls /root/lava-patch/*patch| sort) ; do echo $patch && patch -p1 < $patch || exit $?;done
 
 COPY device-types-patch/ /root/device-types-patch/
-RUN cd /etc/lava-server/dispatcher-config/device-types/ && for patch in $(ls /root/device-types-patch/*patch) ; do sed -i 's,lava_scheduler_app/tests/device-types/,,' $patch && echo $patch && patch < $patch || exit $?; done
-RUN chown -R lavaserver:lavaserver /etc/lava-server/dispatcher-config/device-types/
+RUN sh root/device-types-patch/patch-device-type.sh
 
 COPY zmq_auth/ /etc/lava-dispatcher/certificates.d/
 
@@ -39,6 +38,8 @@ COPY apache2/ /etc/apache2/
 
 # Fixes 'postgresql ERROR:  invalid locale name: "en_US.UTF-8"' when restoring a backup
 RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && locale-gen en_US.UTF-8
+
+COPY pg_lava_password /root
 
 # TODO: send this fix to upstream
 RUN sed -i 's,find /root/entrypoint.d/ -type f,find /root/entrypoint.d/ -type f | sort,' /root/entrypoint.sh
