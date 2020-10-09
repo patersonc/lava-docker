@@ -43,13 +43,10 @@ You will need to exchange the public slave key with the public master key. Pleas
 contact the cip-dev mailing list to obtain the public master key. You will need
 to send the following details:
 - name of your lab/worker (ie. lab-cip-<member_company>)
-- the dispatcher IP of the lab (ie. the IP address of the worker network to which
-  the DUTs are connected to)
 - the lab's public key (as a file)
 
 Once you have obtained the CIP master public key, place this key in your
-certificates directory and create a dummy master private certificate in the
-certificates directory. It should be named *lava.ciplatform.org.key_secret*.
+certificates directory.
 
 5) Edit the boards.yaml file:
 - Copy the API token you created in step 2 in the place of <generated_lab_token>.
@@ -72,13 +69,12 @@ To get the uart devpath, run the command:
 udevadm info -a -n /dev/ttyUSB1 |grep devpath | head -n1
 ```
 
-NOTE: Make sure you have at least one "board" included. (It is easiest to keep qemu).
+NOTE: Make sure you have at least one "board" included. (It is easiest to keep
+qemu).
 
 6) Run the automated setup script:
 ```
-./lavalab-gen.sh
-cd output/<name_of_lab>
-./deploy.sh
+./start.sh slave
 ```
 
 7) Check the web GUI to see if the lab has successfully connected to the LAVA
@@ -90,6 +86,16 @@ docker-exec -it <name_of_docker_container> cat /var/log/lava-dispatcher/lava-sla
 To identify the container name run the following to list the running containers:
 ```
 docker ps
+```
+
+LAVA logs can be found in `/var/log/lava-dispatcher/`.
+
+8) Helper scripts
+There are a few helper scripts to automate starting/stopping the lab.
+```
+./start.sh slave
+./restart.sh slave
+./stop.sh slave
 ```
 
 ## Adding new device-type templates ##
