@@ -1,0 +1,18 @@
+slaves:
+  - name: lab-cip-<company>
+    host: lab-cip-<company>
+    remote_master: lava.ciplatform.org
+    remote_proto: https
+    remote_rpc_port: 443
+    remote_user: <user_"owning"_the_lab>
+    remote_user_token: <token>
+    zmq_auth_key: <path_to_lab_public_key>
+    zmq_auth_key_secret: <path_to_lab_private_key>
+    zmq_auth_master_key: <path_to_lava.ciplatform.org_public_key>
+    dispatcher_ip: <ip_of_network_DUTs_are_connected_to>
+    use_nfs: true
+    lava-coordinator: true
+    bind_dev: true
+boards:
+  - name: qemu-01
+    type: qemu
