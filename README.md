@@ -23,6 +23,8 @@ The following packages are necessary on the host machine:
 * docker-compose
 * pyyaml
 
+If you plan to use docker/fastboot tests, you will need probably also to install lava-dispatcher-host.
+
 ## Quickstart
 Example to use lava-docker with only one QEMU device:
 
@@ -221,8 +223,12 @@ masters:
     slave_keys:			optional path to a directory with slaves public key. Usefull when you want to create a master without slaves nodes in boards.yaml.
     lava-coordinator:		Does the master should ran a lava-coordinator and export its port
     persistent_db: True/False	(default False) Is the postgres DB is persistent over reboot
+    pg_lava_password:		The Postgres lavaserver password to set
     http_fqdn:			The FQDN used to access the LAVA web interface. This is necessary if you use https otherwise you will issue CSRF errors.
     healthcheck_url:		Hack healthchecks hosting URL. See hosting healthchecks below
+    build_args:
+      - line1			A list of line to set docker build-time variables
+      - line2
     allowed_hosts:		A list of FQDN used to access the LAVA master
     - "fqdn1"
     - "fqdn2"
@@ -291,6 +297,9 @@ slaves:
       - p1:p2
     extra_actions:		An optional list of action to do at end of the docker build
     - "apt-get install package"
+    build_args:
+      - line1			A list of line to set docker build-time variables
+      - line2
     env:
       - line1			A list of line to set as environment (See /etc/lava-server/env.yaml for examples)
       - line2
@@ -403,6 +412,31 @@ For running all images, simply run:
 docker-compose up -d
 ```
 
+### Enabling ZMQ encryption
+Enabling ZMQ is all or nothing.
+You need to generate keys for both master AND workers.
+Generate thoses keys via:
+```
+zmqauth/zmq_auth_gen/create_certificate.py --directory . nameofyourworker
+```
+This will produce two files:
+* A public key ending with ".key"
+* A private key ending with ".key_secret"
+
+Since ZMQ keys does not store any information like name, filename could be different between master and workers.
+
+As general note, LAVA will use the hostname (and so the name in the master/worker node) for finding ZMQ keys.
+
+#### Naming convention for master
+ZMQ key for master should be named according to the name used in master node.
+ZMQ key for worker should be named according to the name in the worker node
+lava-docker will automaticly copy master zmq_auth_key/zmq_auth_key_secret to name.key/name.key_secret
+
+#### Naming convention for workers
+ZMQ public key for master should be named according to the remote_address used in worker node.
+ZMQ key for worker should be named according to the name in the worker node
+lava-docker will automaticly copy master zmq_auth_master_key to remote_address.key
+
 ## Proxy cache (Work in progress)
 A squid docker is provided for caching all LAVA downloads (image, dtb, rootfs, etc...)<br/>
 For the moment, it is unsupported and unbuilded.
@@ -507,7 +541,7 @@ For setting a DNS server, the easiest way is to use dnsmasq and add in /etc/host
 
 Example:
 One master and slave on DC A, and one slave on DC B.
-Both slave need to have healthcheck_host to true and master will have healthcheck_url set to healthcheck:8080
+Both slave need to have healthcheck_host to true and master will have healthcheck_url set to http://healthcheck:8080
 You have to add a DNS server on both slave with an healthcheck entry.
 
 ## Bugs, Contact

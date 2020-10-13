@@ -1,27 +1,22 @@
 masters:
-  - name: cip-master
-    host: lava.ciplatform.org
-    http_fqdn: lava.ciplatform.org
-    webadmin_https: true
-    zmq_auth: true
-    zmq_auth_key: <path_to_lava.ciplatform.key>
-    zmq_auth_key_secret: <path_to_lava.ciplatform.key_secret>
+  - name: master1
+    host: local
     users:
-    - name: <user_"owning"_the_lab>
-      token: <generated_lab_token>
-      password: dummy_password
+    - name: admin
+      token: longrandomtokenadmin
+      password: admin
+      superuser: yes
+      staff: yes
+    tokens:
+    - username: admin
+      token: dfjdfkfkdjfkdsjfsl
+      description: no description
 slaves:
-  - name: lab-cip-<company>
-    host: lab-cip-<company>
-    zmq_auth_key: <path_to_lab_public_key>
-    zmq_auth_key_secret: <path_to_lab_private_key>
-    zmq_auth_master_key: <path_to_lava.ciplatform.key>
-    dispatcher_ip: <ip_of_network_DUTs_are_connected_to>
-    remote_master: cip-master
-    remote_address: lava.ciplatform.org
-    remote_rpc_port: 443
-    remote_user: <user_"owning"_the_lab>
-    remote_proto: https
+  - name: lab-slave-0
+    host: local
+    remote_master: master1
+    remote_user: admin
+
 boards:
   - name: qemu-01
     type: qemu

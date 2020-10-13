@@ -114,11 +114,25 @@ def main():
     else:
         masters = workers["masters"]
     for master in masters:
-        keywords_master = [ "name", "type", "host", "users", "groups", "tokens", "webadmin_https", "persistent_db", "zmq_auth", "zmq_auth_key", "zmq_auth_key_secret", "http_fqdn", "slave_keys", "slaveenv", "loglevel", "allowed_hosts", "lava-coordinator", "healthcheck_url", "smtp", "version" ]
+        keywords_master = [
+            "allowed_hosts",
+            "build_args",
+            "groups",
+            "healthcheck_url", "host", "http_fqdn",
+            "loglevel", "lava-coordinator",
+            "name",
+            "persistent_db", "pg_lava_password",
+            "slave_keys", "slaveenv", "smtp",
+            "tokens", "type",
+            "users",
+            "version",
+            "webadmin_https",
+            "zmq_auth", "zmq_auth_key", "zmq_auth_key_secret",
+            ]
         for keyword in master:
             if not keyword in keywords_master:
                 print("WARNING: unknown keyword %s" % keyword)
-        name = master["name"]
+        name = master["name"].lower()
         print("Handle %s\n" % name)
         if not "host" in master:
             host = "local"
@@ -137,14 +151,19 @@ def main():
         dockcomp["services"][name]["volumes"] = [ "/boot:/boot", "/lib/modules:/lib/modules" ]
         dockcomp["services"][name]["build"] = {}
         dockcomp["services"][name]["build"]["context"] = name
+        if "build_args" in master:
+            dockcomp["services"][name]["build"]["args"] = master['build_args']
         persistent_db = False
         if "persistent_db" in master:
             persistent_db = master["persistent_db"]
         if persistent_db:
             pg_volume_name = "pgdata_" + name
             dockcomp["services"][name]["volumes"].append(pg_volume_name + ":/var/lib/postgresql")
+            etc_volume_name = "lava_etc_" + name
+            dockcomp["services"][name]["volumes"].append(etc_volume_name + ":/etc/lava-server/")
             dockcomp["services"][name]["volumes"].append("lava_job_output:/var/lib/lava-server/default/media/job-output/")
             dockcomp["volumes"] = {}
+            dockcomp["volumes"][etc_volume_name] = {}
             dockcomp["volumes"][pg_volume_name] = {}
             dockcomp["volumes"]["lava_job_output"] = {}
 
@@ -156,6 +175,13 @@ def main():
         groupdir = "%s/groups" % workerdir
         os.mkdir(groupdir)
         worker = master
+        if "pg_lava_password" in master:
+            f_pg = open("%s/pg_lava_password" % workerdir, 'w')
+            f_pg.write(master["pg_lava_password"])
+            f_pg.close()
+        else:
+            f_pg = open("%s/pg_lava_password" % workerdir, 'w')
+            f_pg.close()
         if "version" in worker:
             dockerfile = open("%s/Dockerfile" % workerdir, "r+")
             dockerfilec = re.sub('(^FROM.*:).*', '\g<1>%s' % worker["version"], dockerfile.read())
@@ -371,11 +397,26 @@ def main():
     else:
         slaves = workers["slaves"]
     for slave in slaves:
-        keywords_slaves = [ "name", "host", "dispatcher_ip", "remote_user", "remote_master", "remote_address", "remote_rpc_port", "remote_proto", "extra_actions", "zmq_auth_key", "zmq_auth_key_secret", "default_slave", "export_ser2net", "expose_ser2net", "remote_user_token", "zmq_auth_master_key", "expose_ports", "env", "bind_dev", "loglevel", "use_nfs", "arch", "devices", "lava-coordinator", "use_tap", "host_healthcheck", "use_tftp", "use_nbd", "use_overlay_server", "tags", "use_docker", "version", "custom_volumes" ]
+        keywords_slaves = [
+            "arch",
+            "bind_dev", "build_args",
+            "custom_volumes",
+            "devices", "dispatcher_ip", "default_slave",
+            "extra_actions", "export_ser2net", "expose_ser2net", "expose_ports", "env",
+            "host", "host_healthcheck",
+            "loglevel", "lava-coordinator",
+            "name",
+            "remote_user", "remote_master", "remote_address", "remote_rpc_port", "remote_proto", "remote_user_token",
+            "tags",
+            "use_docker", "use_nfs", "use_nbd", "use_overlay_server", "use_tftp", "use_tap",
+            "version",
+            "zmq_auth_key", "zmq_auth_key_secret",
+            "zmq_auth_master_key",
+        ]
         for keyword in slave:
             if not keyword in keywords_slaves:
                 print("WARNING: unknown keyword %s" % keyword)
-        name = slave["name"]
+        name = slave["name"].lower()
         if len(slaves) == 1:
             default_slave = name
         print("Handle %s" % name)
@@ -406,6 +447,8 @@ def main():
         dockcomp["services"][name]["environment"] = {}
         dockcomp["services"][name]["build"] = {}
         dockcomp["services"][name]["build"]["context"] = name
+        if "build_args" in slave:
+            dockcomp["services"][name]["build"]["args"] = slave['build_args']
         # insert here remote
 
         shutil.copytree("lava-slave", workerdir)
@@ -458,9 +501,9 @@ def main():
                 if "zmq_auth_key" in worker:
                     shutil.copy(worker["zmq_auth_key"], "%s/zmq_auth/" % workerdir)
                     shutil.copy(worker["zmq_auth_key_secret"], "%s/zmq_auth/" % workerdir)
-                    shutil.copy(worker["zmq_auth_master_key"], "%s/zmq_auth/" % workerdir)
+                    shutil.copy(worker["zmq_auth_master_key"], "%s/zmq_auth/%s.key" % (workerdir,remote_master))
         for fm in masters:
-            if fm["name"] == remote_master:
+            if fm["name"].lower() == remote_master.lower():
                 slave_master = fm
                 for fuser in fm["users"]:
                     if fuser["name"] == remote_user:
@@ -558,12 +601,16 @@ def main():
         if "use_tftp" in worker:
             use_tftp = worker["use_tftp"]
         if use_tftp:
-            dockcomp["services"][name]["ports"].append("69:69/udp")
+            if "dispatcher_ip" in worker:
+                dockcomp["services"][name]["ports"].append(worker["dispatcher_ip"] + ":69:69/udp")
+            else:
+                dockcomp["services"][name]["ports"].append("69:69/udp")
         use_docker = False
         if "use_docker" in worker:
             use_docker = worker["use_docker"]
         if use_docker:
             dockcomp["services"][worker_name]["volumes"].append("/var/run/docker.sock:/var/run/docker.sock")
+            dockcomp["services"][worker_name]["volumes"].append("/run/udev/data:/run/udev/data")
         # TODO permit to change the range of NBD ports
         use_nbd = True
         if "use_nbd" in worker:
@@ -582,8 +629,9 @@ def main():
         use_nfs = False
         if "use_nfs" in worker:
             use_nfs = worker["use_nfs"]
-        if use_nfs:
+        if use_nfs or use_docker:
             dockcomp["services"][worker_name]["volumes"].append("/var/lib/lava/dispatcher/tmp:/var/lib/lava/dispatcher/tmp")
+        if use_nfs:
             fp = open("%s/scripts/extra_actions" % workerdir, "a")
             # LAVA check if this package is installed when doing NFS jobs
             # So we need to install it, even if it is not used
@@ -618,7 +666,7 @@ def main():
         print("\tFound %s on %s" % (board_name, worker_name))
         found_slave = False
         for fs in workers["slaves"]:
-            if fs["name"] == worker_name:
+            if fs["name"].lower() == worker_name.lower():
                 slave = fs
                 found_slave = True
         if not found_slave:

@@ -1,0 +1,24 @@
+masters:
+  - name: cip-master
+    host: lava.ciplatform.org
+    http_fqdn: lava.ciplatform.org
+    webadmin_https: true
+    zmq_auth: true
+    zmq_auth_key: <path_to_lava.ciplatform.key>
+    zmq_auth_key_secret: <path_to_lava.ciplatform.key_secret>
+    slave_keys: <path_to_slave_public_keys>
+    lava-coordinator: true
+    smtp:
+      server_email: <email_address>
+      email_host: <host_address>
+      email_host_user: <user>
+      email_host_password: <password>
+      email_port: <port>
+      email_use_tls: true
+    users:
+    - name: <user>
+      token: <token>
+      password: <password>
+      email: <email>
+      superuser: <yes/no>
+      staff: <yes/no>
