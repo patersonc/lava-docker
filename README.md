@@ -279,6 +279,7 @@ slaves:
     remote_user: 		the user used for connecting to the master
     remote_user_token:		The remote_user's token. This option is necessary only if no master node exists in boards.yaml. Otherwise lavalab-gen.py will get from it.
     remote_proto:		http(default) or https
+    lava_worker_token:		token to authenticate worker to master/scheduler (LAVA 2020.09+)
     default_slave:		Does this slave is the default slave where to add boards (default: lab-slave-0)
     bind_dev:			Bind /dev from host to slave. This is needed when using some HID PDU
     use_tftp:			Does LAVA need a TFTP server (default True)
@@ -344,7 +345,6 @@ boards:
       ser2net_options:	(optional) A list of ser2net options to add
         - option1
         - option2
-      use_screen: 	True/False (Use screen via ssh instead of ser2net)
     connection_command: A command to be ran for getting a serial console
     pdu_generic:
       hard_reset_command: commandline to reset the board
@@ -353,7 +353,6 @@ boards:
 ```
 Notes on UART:
 * Only one of devpath/serial is necessary.
-* screen usage is discouraged and should not be used, it was added as a workaround for some boards, but ser2net now can handle them.
 * For finding the right devpath, you could use
 ```
 udevadm info -a -n /dev/ttyUSBx |grep devpath | head -n1
