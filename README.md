@@ -217,10 +217,6 @@ masters:
  - name:  lava-master	name of the master
     host: name		name of the host running lava-master (default to "local")
     webadmin_https:	Does the LAVA webadmin is accessed via https
-    zmq_auth: True/False	Does the master requires ZMQ authentication.
-    zmq_auth_key:		optional path to a public ZMQ key
-    zmq_auth_key_secret:	optional path to a private ZMQ key
-    slave_keys:			optional path to a directory with slaves public key. Usefull when you want to create a master without slaves nodes in boards.yaml.
     lava-coordinator:		Does the master should ran a lava-coordinator and export its port
     persistent_db: True/False	(default False) Is the postgres DB is persistent over reboot
     pg_lava_password:		The Postgres lavaserver password to set
@@ -269,9 +265,6 @@ masters:
 slaves:
   - name: lab-slave-XX		The name of the slave (where XX is a number)
     host: name			name of the host running lava-slave-XX (default to "local")
-    zmq_auth_key:		optional path to a public ZMQ key
-    zmq_auth_key_secret:	optional path to a private ZMQ key
-    zmq_auth_master_key:	optional path to the public master ZMQ key. This option is necessary only if no master node exists in boards.yaml.
     dispatcher_ip: 		the IP where the slave could be contacted. In lava-docker it is the host IP since docker proxify TFTP from host to the slave.
     remote_master: 		the name of the master to connect to
     remote_address: 		the FQDN or IP address of the master (if different from remote_master)
@@ -279,6 +272,7 @@ slaves:
     remote_user: 		the user used for connecting to the master
     remote_user_token:		The remote_user's token. This option is necessary only if no master node exists in boards.yaml. Otherwise lavalab-gen.py will get from it.
     remote_proto:		http(default) or https
+    lava_worker_token:		token to authenticate worker to master/scheduler (LAVA 2020.09+)
     default_slave:		Does this slave is the default slave where to add boards (default: lab-slave-0)
     bind_dev:			Bind /dev from host to slave. This is needed when using some HID PDU
     use_tftp:			Does LAVA need a TFTP server (default True)
@@ -344,7 +338,6 @@ boards:
       ser2net_options:	(optional) A list of ser2net options to add
         - option1
         - option2
-      use_screen: 	True/False (Use screen via ssh instead of ser2net)
     connection_command: A command to be ran for getting a serial console
     pdu_generic:
       hard_reset_command: commandline to reset the board
@@ -353,7 +346,6 @@ boards:
 ```
 Notes on UART:
 * Only one of devpath/serial is necessary.
-* screen usage is discouraged and should not be used, it was added as a workaround for some boards, but ser2net now can handle them.
 * For finding the right devpath, you could use
 ```
 udevadm info -a -n /dev/ttyUSBx |grep devpath | head -n1
@@ -411,31 +403,6 @@ For running all images, simply run:
 ```
 docker-compose up -d
 ```
-
-### Enabling ZMQ encryption
-Enabling ZMQ is all or nothing.
-You need to generate keys for both master AND workers.
-Generate thoses keys via:
-```
-zmqauth/zmq_auth_gen/create_certificate.py --directory . nameofyourworker
-```
-This will produce two files:
-* A public key ending with ".key"
-* A private key ending with ".key_secret"
-
-Since ZMQ keys does not store any information like name, filename could be different between master and workers.
-
-As general note, LAVA will use the hostname (and so the name in the master/worker node) for finding ZMQ keys.
-
-#### Naming convention for master
-ZMQ key for master should be named according to the name used in master node.
-ZMQ key for worker should be named according to the name in the worker node
-lava-docker will automaticly copy master zmq_auth_key/zmq_auth_key_secret to name.key/name.key_secret
-
-#### Naming convention for workers
-ZMQ public key for master should be named according to the remote_address used in worker node.
-ZMQ key for worker should be named according to the name in the worker node
-lava-docker will automaticly copy master zmq_auth_master_key to remote_address.key
 
 ## Proxy cache (Work in progress)
 A squid docker is provided for caching all LAVA downloads (image, dtb, rootfs, etc...)<br/>

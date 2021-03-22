@@ -30,28 +30,11 @@ https://lava.ciplatform.org/api/tokens/
 
 3) Connect all the DUTs' serial to usb and ethernet connections to the host.
 
-4) Create a slave zmq certificate
-```
-zmqauth/zmq_auth_gen/create_certificate.py --directory . nameofyourslave
-```
-This will create a:
-- public key ending with ".key"
-- private key ending with ".key_secret"
-
-Please place these in a sensible directory eg. ../certificates.d
-You will need to exchange the public slave key with the public master key. Please
-contact the cip-dev mailing list to obtain the public master key. You will need
-to send the following details:
-- name of your lab/worker (ie. lab-cip-<member_company>)
-- the lab's public key (as a file)
-
-Once you have obtained the CIP master public key, place this key in your
-certificates directory.
-
-5) Edit the boards.yaml file:
-- Copy the API token you created in step 2 in the place of <generated_lab_token>.
-- Add the filepaths of the zmq keys of the master and the slave lab in their
-respective locations.
+4) Edit the boards.yaml file:
+- Copy the API token you created in step 2 in the place of
+<user_"owning"_the_lab_token>.
+- Get a lava worker token from the CIP Testing Working Group and put it in place
+of <get_from_CIP_admins>.
 - Add details of each board connected to the lab. See the top level README for
 instructions. You will need the following:
 - any custom options you require in the kernel args

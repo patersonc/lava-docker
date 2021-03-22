@@ -3,10 +3,6 @@ masters:
     host: lava.ciplatform.org
     http_fqdn: lava.ciplatform.org
     webadmin_https: true
-    zmq_auth: true
-    zmq_auth_key: <path_to_lava.ciplatform.key>
-    zmq_auth_key_secret: <path_to_lava.ciplatform.key_secret>
-    slave_keys: <path_to_slave_public_keys>
     lava-coordinator: true
     smtp:
       server_email: <email_address>

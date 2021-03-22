@@ -44,10 +44,6 @@ template_device_ser2net = string.Template("""
 {% set connection_command = 'telnet 127.0.0.1 ${port}' %}
 """)
 
-template_device_screen = string.Template("""
-{% set connection_command = 'ssh -o StrictHostKeyChecking=no -t root@127.0.0.1 "TERM=xterm screen -x ${board}"' %}
-""")
-
 template_settings_conf = string.Template("""
 {
     "DEBUG": false,
@@ -97,17 +93,20 @@ def dockcomp_add_device(dockcomp, worker_name, devicemap):
             return
     dc_devices.append(devicemap)
 
+def dockcomp_add_cap(dockcomp, worker_name, cap):
+    if "cap_add" not in dockcomp["services"][worker_name]:
+            dockcomp["services"][worker_name]["cap_add"] = []
+    dockcomp["services"][worker_name]["cap_add"].append(cap)
+
 def usage():
     print("%s [boardsfile.yaml]" % sys.argv[0])
 
 def main():
-    need_zmq_auth_gen = False
     fp = open(boards_yaml, "r")
     workers = yaml.safe_load(fp)
     fp.close()
 
     os.mkdir("output")
-    zmq_auth_genlist = open("zmqauth/zmq_auth_gen/zmq_genlist", 'w')
 
     if "masters" not in workers:
         masters = {}
@@ -122,12 +121,11 @@ def main():
             "loglevel", "lava-coordinator",
             "name",
             "persistent_db", "pg_lava_password",
-            "slave_keys", "slaveenv", "smtp",
+            "slaveenv", "smtp",
             "tokens", "type",
             "users",
             "version",
             "webadmin_https",
-            "zmq_auth", "zmq_auth_key", "zmq_auth_key_secret",
             ]
         for keyword in master:
             if not keyword in keywords_master:
@@ -188,6 +186,7 @@ def main():
             dockerfile.seek(0)
             dockerfile.write(dockerfilec)
             dockerfile.close()
+            dockcomp["services"][name]["image"] = "%s:%s" % (name, worker["version"])
         if "lava-coordinator" in master and master["lava-coordinator"]:
             dockcomp["services"][name]["ports"].append('3079:3079')
             f_entrypoint = open("%s/entrypoint.d/02_lava-coordinator.sh" % workerdir, 'w')
@@ -281,21 +280,6 @@ def main():
                 )
             )
         fsettings.close()
-        master_use_zmq_auth = False
-        if "zmq_auth" in worker:
-            master_use_zmq_auth = worker["zmq_auth"]
-        if master_use_zmq_auth:
-            if "zmq_auth_key" in worker:
-                shutil.copy(worker["zmq_auth_key"], "%s/zmq_auth/%s.key" % (workerdir, name))
-                shutil.copy(worker["zmq_auth_key_secret"], "%s/zmq_auth/%s.key_secret" % (workerdir, name))
-            else:
-                zmq_auth_genlist.write("%s/%s\n" % (host, name))
-                need_zmq_auth_gen = True
-            if "slave_keys" in worker:
-                src_files = os.listdir(worker["slave_keys"])
-                for file_name in src_files:
-                    full_file_name = os.path.join(worker["slave_keys"], file_name)
-                    shutil.copy(full_file_name, "%s/zmq_auth/" % workerdir)
         if "users" in worker:
             for user in worker["users"]:
                 keywords_users = [ "name", "staff", "superuser", "password", "token", "email", "groups" ]
@@ -372,7 +356,8 @@ def main():
             for slaveenv in worker["slaveenv"]:
                 slavename = slaveenv["name"]
                 envdir = "%s/env/%s" % (workerdir, slavename)
-                os.mkdir(envdir)
+                if not os.path.isdir(envdir):
+                    os.mkdir(envdir)
                 fenv = open("%s/env.yaml" % envdir, 'w')
                 fenv.write("overrides:\n")
                 for line in slaveenv["env"]:
@@ -404,14 +389,12 @@ def main():
             "devices", "dispatcher_ip", "default_slave",
             "extra_actions", "export_ser2net", "expose_ser2net", "expose_ports", "env",
             "host", "host_healthcheck",
-            "loglevel", "lava-coordinator",
+            "loglevel", "lava-coordinator", "lava_worker_token",
             "name",
             "remote_user", "remote_master", "remote_address", "remote_rpc_port", "remote_proto", "remote_user_token",
             "tags",
             "use_docker", "use_nfs", "use_nbd", "use_overlay_server", "use_tftp", "use_tap",
             "version",
-            "zmq_auth_key", "zmq_auth_key_secret",
-            "zmq_auth_master_key",
         ]
         for keyword in slave:
             if not keyword in keywords_slaves:
@@ -468,6 +451,7 @@ def main():
             dockerfile.seek(0)
             dockerfile.write(dockerfilec)
             dockerfile.close()
+            dockcomp["services"][name]["image"] = "%s:%s" % (name, worker["version"])
         if "arch" in worker:
             if worker["arch"] == 'arm64':
                 dockerfile = open("%s/Dockerfile" % workerdir, "r+")
@@ -489,6 +473,8 @@ def main():
         else:
             remote_rpc_port = worker["remote_rpc_port"]
         dockcomp["services"][worker_name]["environment"]["LAVA_MASTER"] = remote_address
+        if "lava_worker_token" in worker:
+            dockcomp["services"][worker_name]["environment"]["LAVA_WORKER_TOKEN"] = worker["lava_worker_token"]
         remote_user = worker["remote_user"]
         # find master
         remote_token = "BAD"
@@ -498,30 +484,13 @@ def main():
             masters = {}
             if "remote_user_token" in worker:
                 remote_token = worker["remote_user_token"]
-                if "zmq_auth_key" in worker:
-                    shutil.copy(worker["zmq_auth_key"], "%s/zmq_auth/" % workerdir)
-                    shutil.copy(worker["zmq_auth_key_secret"], "%s/zmq_auth/" % workerdir)
-                    shutil.copy(worker["zmq_auth_master_key"], "%s/zmq_auth/%s.key" % (workerdir,remote_master))
         for fm in masters:
             if fm["name"].lower() == remote_master.lower():
                 slave_master = fm
                 for fuser in fm["users"]:
                     if fuser["name"] == remote_user:
                         remote_token = fuser["token"]
-                if "zmq_auth" in fm:
-                    master_use_zmq_auth = fm["zmq_auth"]
-                if master_use_zmq_auth:
-                    if "zmq_auth_key" in fm:
-                        shutil.copy(fm["zmq_auth_key"], "%s/zmq_auth/%s.key" % (workerdir, remote_address))
-                    if "zmq_auth_key" in worker:
-                        shutil.copy(worker["zmq_auth_key"], "%s/zmq_auth/%s.key" % (workerdir, name))
-                        shutil.copy(worker["zmq_auth_key_secret"], "%s/zmq_auth/%s.key_secret" % (workerdir, name))
-                        if "zmq_auth_key" in fm:
-                            shutil.copy(worker["zmq_auth_key"], "output/%s/%s/zmq_auth/%s.key" % (fm["host"], fm["name"], name))
-                    else:
-                        zmq_auth_genlist.write("%s/%s %s/%s\n" % (host, name, fm["host"], fm["name"]))
-                        need_zmq_auth_gen = True
-        if remote_token is "BAD":
+        if remote_token == "BAD":
             print("Cannot find %s on %s" % (remote_user, remote_master))
             sys.exit(1)
         if "env" in slave:
@@ -547,7 +516,9 @@ def main():
         else:
             remote_proto = worker["remote_proto"]
         remote_uri = "%s://%s:%s@%s:%s/RPC2" % (remote_proto, remote_user, remote_token, remote_address, remote_rpc_port)
+        remote_master_url = "%s://%s:%s" % (remote_proto, remote_address, remote_rpc_port)
         dockcomp["services"][worker_name]["environment"]["LAVA_MASTER_URI"] = remote_uri
+        dockcomp["services"][worker_name]["environment"]["LAVA_MASTER_URL"] = remote_master_url
         dockcomp["services"][worker_name]["environment"]["LAVA_MASTER_USER"] = remote_user
         dockcomp["services"][worker_name]["environment"]["LAVA_MASTER_BASEURI"] = "%s://%s:%s/RPC2" % (remote_proto, remote_address, remote_rpc_port)
         dockcomp["services"][worker_name]["environment"]["LAVA_MASTER_TOKEN"] = remote_token
@@ -566,8 +537,7 @@ def main():
             dockcomp["services"][worker_name]["privileged"] = True
         if "use_tap" in worker and worker["use_tap"]:
             dockcomp_add_device(dockcomp, worker_name, "/dev/net/tun:/dev/net/tun")
-            dockcomp["services"][worker_name]["cap_add"] = []
-            dockcomp["services"][worker_name]["cap_add"].append("NET_ADMIN")
+            dockcomp_add_cap(dockcomp, worker_name, "NET_ADMIN")
         if "host_healthcheck" in worker and worker["host_healthcheck"]:
             dockcomp["services"]["healthcheck"] = {}
             dockcomp["services"]["healthcheck"]["ports"] = ["8080:8080"]
@@ -726,17 +696,14 @@ def main():
                 dockcomp_add_device(dockcomp, worker_name, "/dev/%s:/dev/%s" % (board_name, board_name))
             use_conmux = False
             use_ser2net = False
-            use_screen = False
-            if "use_screen" in uart:
-                use_screen = uart["use_screen"]
             if "use_conmux" in uart:
                 use_conmux = uart["use_conmux"]
             if "use_ser2net" in uart:
                 use_ser2net = uart["use_ser2net"]
-            if (use_conmux and use_ser2net) or (use_conmux and use_screen) or (use_screen and use_ser2net):
+            if (use_conmux and use_ser2net):
                 print("ERROR: Only one uart handler must be configured")
                 sys.exit(1)
-            if not use_conmux and not use_screen and not use_ser2net and not "connection_command" in board:
+            if not use_conmux and not use_ser2net and not "connection_command" in board:
                 use_ser2net = True
             if use_conmux:
                 conmuxline = template_conmux.substitute(board=board_name, baud=baud)
@@ -758,11 +725,6 @@ def main():
                 ser2net_ports[worker_name] += 1
                 fp = open("%s/ser2net.conf" % workerdir, "a")
                 fp.write(ser2net_line + " banner\n")
-                fp.close()
-            if use_screen:
-                device_line += template_device_screen.substitute(board=board_name)
-                fp = open("%s/lava-screen.conf" % workerdir, "a")
-                fp.write("%s\n" % board_name)
                 fp.close()
         if "connection_command" in board:
             connection_command = board["connection_command"]
@@ -850,11 +812,6 @@ def main():
         dockcomp["services"][slave_name]["ports"].append("%s-%s:%s-%s" % (ser2net_port_start, ser2net_port_max, ser2net_port_start, ser2net_port_max))
         with open(dockcomposeymlpath, 'w') as f:
             yaml.dump(dockcomp, f)
-
-    zmq_auth_genlist.close()
-    if need_zmq_auth_gen:
-        print("Gen ZMQ auth files")
-        subprocess.check_call(["./zmqauth/zmq_auth_fill.sh"], stdin=None)
 
 if len(sys.argv) > 1:
     if sys.argv[1] == '-h' or sys.argv[1] == '--help':
