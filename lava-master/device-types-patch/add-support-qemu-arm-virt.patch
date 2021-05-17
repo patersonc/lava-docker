@@ -1,0 +1,15 @@
+diff -urN a/etc/dispatcher-config/device-types/qemu.jinja2 b/etc/dispatcher-config/device-types/qemu.jinja2
+--- a/etc/dispatcher-config/device-types/qemu.jinja2	2021-02-05 13:20:34.000000000 +0000
++++ b/etc/dispatcher-config/device-types/qemu.jinja2	2021-05-17 02:23:09.169156743 +0000
+@@ -171,7 +171,11 @@
+ {% endif %}
+ {# end arch cpu #}
+           - -nographic
++{% if arch == 'arm' and machine == 'virt' %}
++          - -netdev user,id=local -device virtio-net-device,netdev=local,mac={{ mac_addr|default('52:54:00:12:34:58') }}
++{% else %}
+           - -net nic,{{ model|default('model=virtio') }},macaddr={{ mac_addr|default('52:54:00:12:34:58') }} -net {{ netdevice|default('user') }}
++{% endif %}
+           - -m {{ memory|default(512) }}
+           - -monitor {{ monitor|default('none') }}
+ {# If you need to pass -soundhw in extra_options, then see doc/v2/qemu_options.rst for how to set the environment var QEMU_AUDIO_DRV=none #}
