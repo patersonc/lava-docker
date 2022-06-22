@@ -31,7 +31,7 @@ actions:
     to: tftp
     os: oe
     kernel:
-      url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/kernel/linux-4.19.y-cip-latest/amd64/simatic-ipc227e_defconfig/vmlinuz
+      url: https://s3.eu-central-1.amazonaws.com/download2.cip-project.org/cip-testing/lava-healthchecks/kernel/linux-5.10.y-cip/plathome_obsvx2_defconfig/bzImage
       type: zimage
     nfsrootfs:
       url: https://s3-us-west-2.amazonaws.com/download.cip-project.org/ciptesting/cip-lava/rfs/rootfs-simatic-ipc227e.tar.gz
