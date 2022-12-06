@@ -11,13 +11,13 @@ simple YAML file, and then a custom script will generate the necessary
 LAVA configuration files automatically.
 
 Similarly, LAVA users and authentication tokens are described in
-a(nother) YAML file, and the LAVA configurations are automatically generated.
+(another) YAML file, and the LAVA configurations are automatically generated.
 
 This enables the setup of a LAVA lab with minimal knowledge of the
 underlying LAVA configuration steps necessary.
 
 ## Prerequisites
-lava-docker has currently been tested primarily on Debian stable (stretch).
+lava-docker has currently been tested primarily on Debian stable (buster).
 The following packages are necessary on the host machine:
 * docker
 * docker-compose
@@ -53,6 +53,8 @@ You will see it in the "All Jobs" list: http://localhost:10080/scheduler/alljobs
 
 * For more details, see https://validation.linaro.org/static/docs/v2/first-job.html
 
+* Note that the port used above can change depending on the setting of webinterface_port in boards.yaml
+
 ### Adding your first board:
 #### device-type
 To add a board you need to find its device-type, standard naming is to use the same as the official kernel DT name.
@@ -74,7 +76,7 @@ If you have a FTDI, simply get its serial (visible in lsusb -v or for major dist
 <br>
 For other UART type (or for old FTDI without serial number) you need to get the devpath attribute via:
 ```
-udevadm info -a -n /dev/ttyUSBx |grep ATTR|grep devpath | head -n1
+udevadm info -a -n /dev/ttyUSBx |grep ATTRS|grep devpath | head -n1
 ```
 Example with a FTDI UART:
 ```
@@ -142,15 +144,13 @@ beagleboneblack, with FTDI (serial 1234567), connected to port 5 of an ACME
 ## Architecture
 The basic setup is composed of a host which runs the following docker images and DUT to be tested.<br/>
 * lava-master: run lava-server along with the web interface
-* lava-slave: run lava-dispatcher, the compoment which sends jobs to DUTs
+* lava-slave: run lava-dispatcher, the component which sends jobs to DUTs
 
 The host and DUTs must share a common LAN.<br/>
 The host IP on this LAN must be set as dispatcher_ip in boards.yaml.<br/>
 
 Since most DUTs are booted using TFTP, they need DHCP for gaining network connectivity.<br/>
 So, on the LAN shared with DUTs, a running DHCPD is necessary. (See DHCPD below)<br/>
-
-![lava-docker diagram](doc/lava-docker.png)
 
 ## Multi-host architectures
 Lava-docker support multi-host architecture, Master and slaves could be on different host.
@@ -163,7 +163,7 @@ You need to have a PDU for powering your DUT.
 Managing PDUs is done via pdu_generic
 
 ### Network ports
-The following ports are used by lava-docker and are proxyfied on the host:
+By default, the following ports are used by lava-docker and are proxyfied on the host:
 - 69/UDP	proxyfied to the slave for TFTP
 - 80		proxyfied to the slave for TODO (transfer overlay)
 - 5500		proxyfied to the slave for Notification
@@ -216,10 +216,12 @@ This file describe how the DUTs are connected and powered.
 masters:
  - name:  lava-master	name of the master
     host: name		name of the host running lava-master (default to "local")
+    version: "202x.xx"	LAVA version for master
     webadmin_https:	Does the LAVA webadmin is accessed via https
+    webinterface_port: Port number to use for the LAVA web interface (default to "10080")
     lava-coordinator:		Does the master should ran a lava-coordinator and export its port
-    persistent_db: True/False	(default False) Is the postgres DB is persistent over reboot
-    pg_lava_password:		The Postgres lavaserver password to set
+    persistent_db: true/false	(default false) Is the postgresql DB is persistent over reboot
+    pg_lava_password:		The postgresql LAVA server password to set
     http_fqdn:			The FQDN used to access the LAVA web interface. This is necessary if you use https otherwise you will issue CSRF errors.
     healthcheck_url:		Hack healthchecks hosting URL. See hosting healthchecks below
     build_args:
@@ -265,6 +267,7 @@ masters:
 slaves:
   - name: lab-slave-XX		The name of the slave (where XX is a number)
     host: name			name of the host running lava-slave-XX (default to "local")
+    version: "202x.xx"		LAVA version for worker
     dispatcher_ip: 		the IP where the slave could be contacted. In lava-docker it is the host IP since docker proxify TFTP from host to the slave.
     remote_master: 		the name of the master to connect to
     remote_address: 		the FQDN or IP address of the master (if different from remote_master)
@@ -331,10 +334,12 @@ boards:
       idvendor: The VID of the UART (Formated as 0xXXXX)
       idproduct: the PID of the UART (Formated as 0xXXXX)
       serial: The serial number in case of FTDI uart
+      baud:		(optional) Change the baud rate of the this uart (default is 115200)
       devpath: the UDEV devpath to this uart for UART without serial number
       interfacenum:	(optional) The interfacenumber of the serial. (Used with two serial in one device)
       use_conmux:	True/False (Use conmux-console instead of ser2net)
       use_ser2net: 	True/False (Deprecated, ser2net is the default uart handler)
+      ser2net_keepopen:	True/False (optional) Use the recent ser2net keepopen
       ser2net_options:	(optional) A list of ser2net options to add
         - option1
         - option2
@@ -365,7 +370,7 @@ Example:
 
 Note on connection_command: connection_command is for people which want to use other custom way than ser2net to handle the console.
 
-Examples: see [boards.yaml.example](boards.yaml.example)
+Examples: see [boards.yaml.example](boards.yaml.example) or [boards.yaml.minimal](boards.yaml.minimal)
 
 ### Generate
 ```
@@ -382,7 +387,7 @@ output/host/udev/99-lavaworker-udev.rules 	udev rules for host
 output/host/docker-compose.yml			Generated from docker-compose.template
 ```
 
-All thoses file (except for udev-rules) will be handled by docker.
+All thoses files (except for udev-rules) will be handled by docker.
 
 You can still hack after all generated files.
 
@@ -436,7 +441,7 @@ For upgrading between two LAVA version, the only method is:
 - Check everything is ok via docker-compose logs -f
 
 ## Security
-Note that this container provides defaults which are unsecure. If you plan on deploying this in a production enviroment please consider the following items:
+Note that this container provides defaults which are unsecure. If you plan on deploying this in a production environment please consider the following items:
 
   * Changing the default admin password (in tokens.taml)
   * Using HTTPS
@@ -444,14 +449,14 @@ Note that this container provides defaults which are unsecure. If you plan on de
 
 ## Non amd64 build
 Since LAVA upstream provides only amd64 and arm64 debian packages, lava-docker support only thoses architectures.
-For building an arm64 lava-docker, some little trick are necesssary:
+For building an arm64 lava-docker, some little trick are necessary:
 - replace "baylibre/lava-xxxx-base" by "baylibre/lava-xxxx-base-arm64" for lava-master and lava-slave dockerfiles
 
 For building lava-xxx-base images
 - replace "bitnami/minideb" by "arm64v8/debian" on lava-master-base/lava-slave-base dockerfiles.
 
 # How to ran NFS jobs
-You need to se use_nfs: True on slave that will ran NFS jobs.
+You need to set use_nfs: True on slave that will ran NFS jobs.
 A working NFS server must be working on the host.
 Furthermore, you must create a /var/lib/lava/dispatcher/tmp directory on the host and export it like:
 /var/lib/lava/dispatcher/tmp 192.168.66.0/24(no_root_squash,rw,no_subtree_check)
@@ -464,7 +469,7 @@ Doing the same for lava-slave will be done later.
 There are two way to add custom devices types.
 * Copy a device type file directly in lava-master/device-types/
 	If you have a brand new device-type, it is the simpliest way.
-* Copy a patch addding/modifying a device-type in lava-master/device-types-patch/
+* Copy a patch adding/modifying a device-type in lava-master/device-types-patch/
 	If you are modifying an already present (upstream) device-type, it is the best way.
 
 ## How to made LAVA slave use a proxy ?
@@ -484,7 +489,7 @@ Or on master via
 All boards which uses PXE, could be used with LAVA via grub.
 But you need to add a configuration in your DHCP server for that board.
 This configuration need tell to the PXE to get GRUB for the dispatcher TFTP.
-EXample for an upsquare and a dispatcher availlable at 192.168.66.1:
+Example for an upsquare and a dispatcher available at 192.168.66.1:
 ```
   	host upsquare {
 		hardware ethernet 00:07:32:54:41:bb;
@@ -494,17 +499,17 @@ EXample for an upsquare and a dispatcher availlable at 192.168.66.1:
 ```
 
 ## How to host healthchecks
-Healthchecks jobs needs externals ressources (rootfs, images, etc...).
-By default, lava-docker healthchecks uses ones hosted on our github, but this imply usage of external networks and some bandwith.
+Healthchecks jobs needs externals resources (rootfs, images, etc...).
+By default, lava-docker healthchecks uses ones hosted on our github, but this imply usage of external networks and some bandwidth.
 For hosting locally healthchecks files, you can set healthcheck_host on a slave for hosting them.
 Note that doing that bring some constraints:
 - Since healthchecks jobs are hosted by the master, The healthcheck hostname must be the same accross all slaves.
 - You need to set the base URL on the master via healthcheck_url
 - If you have qemu devices, Since they are inside the docker which provides an internal DNS , you probably must use the container("healthcheck") name as hostname.
 - In case of a simple setup, you can use the slave IP as healthcheck_url
-- In more complex setup (slave sprayed on different site with different network subnets) you need to set a DNS server for having the same DNS availlable on all sites.
+- In more complex setup (slave sprayed on different site with different network subnets) you need to set a DNS server for having the same DNS available on all sites.
 
-For setting a DNS server, the easiest way is to use dnsmasq and add in /etc/hosts "healtcheck ipaddressoftheslave"
+For setting a DNS server, the easiest way is to use dnsmasq and add in /etc/hosts "healthcheck ipaddressoftheslave"
 
 Example:
 One master and slave on DC A, and one slave on DC B.
@@ -512,5 +517,5 @@ Both slave need to have healthcheck_host to true and master will have healthchec
 You have to add a DNS server on both slave with an healthcheck entry.
 
 ## Bugs, Contact
-The prefered way to submit bugs are via the github issue tracker
-You can also contact us on #lava-docker on the freenode IRC network
+The preferred way to submit bugs are via the github issue tracker
+You can also contact us on #lava-docker on the Libera.chat IRC network

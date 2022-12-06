@@ -44,6 +44,8 @@ template_device_ser2net = string.Template("""
 {% set connection_command = 'telnet 127.0.0.1 ${port}' %}
 """)
 
+ser2net_dict = {}
+
 template_settings_conf = string.Template("""
 {
     "DEBUG": false,
@@ -125,7 +127,7 @@ def main():
             "tokens", "type",
             "users",
             "version",
-            "webadmin_https",
+            "webadmin_https", "webinterface_port",
             ]
         for keyword in master:
             if not keyword in keywords_master:
@@ -139,13 +141,17 @@ def main():
         workerdir = "output/%s/%s" % (host, name)
         os.mkdir("output/%s" % host)
         shutil.copy("deploy.sh", "output/%s/" % host)
+        if not "webinterface_port" in master:
+            webinterface_port = "10080"
+        else:
+            webinterface_port = master["webinterface_port"]
         dockcomp = {}
         dockcomp["version"] = "2.0"
         dockcomp["services"] = {}
         dockcomposeymlpath = "output/%s/docker-compose.yml" % host
         dockcomp["services"][name] = {}
         dockcomp["services"][name]["hostname"] = name
-        dockcomp["services"][name]["ports"] = [ "10080:80", "5555:5555", "5556:5556", "5500:5500" ]
+        dockcomp["services"][name]["ports"] = [ str(webinterface_port) + ":80", "5555:5555", "5556:5556", "5500:5500" ]
         dockcomp["services"][name]["volumes"] = [ "/boot:/boot", "/lib/modules:/lib/modules" ]
         dockcomp["services"][name]["build"] = {}
         dockcomp["services"][name]["build"]["context"] = name
@@ -474,7 +480,9 @@ def main():
             remote_rpc_port = worker["remote_rpc_port"]
         dockcomp["services"][worker_name]["environment"]["LAVA_MASTER"] = remote_address
         if "lava_worker_token" in worker:
-            dockcomp["services"][worker_name]["environment"]["LAVA_WORKER_TOKEN"] = worker["lava_worker_token"]
+            fsetupenv = open("%s/setupenv" % workerdir, "a")
+            fsetupenv.write("LAVA_WORKER_TOKEN=%s\n" % worker["lava_worker_token"])
+            fsetupenv.close()
         remote_user = worker["remote_user"]
         # find master
         remote_token = "BAD"
@@ -510,18 +518,22 @@ def main():
                 volume_name = cvolume.split(':')[0]
                 if "volumes" not in dockcomp:
                     dockcomp["volumes"] = {}
-                dockcomp["volumes"][volume_name] = {}
+                if cvolume[0] != '/':
+                    dockcomp["volumes"][volume_name] = {}
         if not "remote_proto" in worker:
             remote_proto = "http"
         else:
             remote_proto = worker["remote_proto"]
         remote_uri = "%s://%s:%s@%s:%s/RPC2" % (remote_proto, remote_user, remote_token, remote_address, remote_rpc_port)
         remote_master_url = "%s://%s:%s" % (remote_proto, remote_address, remote_rpc_port)
-        dockcomp["services"][worker_name]["environment"]["LAVA_MASTER_URI"] = remote_uri
-        dockcomp["services"][worker_name]["environment"]["LAVA_MASTER_URL"] = remote_master_url
-        dockcomp["services"][worker_name]["environment"]["LAVA_MASTER_USER"] = remote_user
-        dockcomp["services"][worker_name]["environment"]["LAVA_MASTER_BASEURI"] = "%s://%s:%s/RPC2" % (remote_proto, remote_address, remote_rpc_port)
-        dockcomp["services"][worker_name]["environment"]["LAVA_MASTER_TOKEN"] = remote_token
+
+        fsetupenv = open("%s/setupenv" % workerdir, "a")
+        fsetupenv.write("LAVA_MASTER_URI=%s\n" % remote_uri)
+        fsetupenv.write("LAVA_MASTER_URL=%s\n" % remote_master_url)
+        fsetupenv.write("LAVA_MASTER_USER=%s\n" % remote_user)
+        fsetupenv.write("LAVA_MASTER_BASEURI=%s://%s:%s/RPC2\n" % (remote_proto, remote_address, remote_rpc_port))
+        fsetupenv.write("LAVA_MASTER_TOKEN=%s\n" % remote_token)
+        fsetupenv.close()
 
         if "lava-coordinator" in worker and worker["lava-coordinator"]:
             fcoordinator = open("%s/lava-coordinator/lava-coordinator.cnf" % workerdir, 'w')
@@ -543,6 +555,8 @@ def main():
             dockcomp["services"]["healthcheck"]["ports"] = ["8080:8080"]
             dockcomp["services"]["healthcheck"]["build"] = {}
             dockcomp["services"]["healthcheck"]["build"]["context"] = "healthcheck"
+            if "build_args" in master:
+                dockcomp["services"]["healthcheck"]["build"]["args"] = master['build_args']
             shutil.copytree("healthcheck", "output/%s/healthcheck" % host)
         if "extra_actions" in worker:
             fp = open("%s/scripts/extra_actions" % workerdir, "w")
@@ -588,7 +602,7 @@ def main():
         if use_nbd:
             dockcomp["services"][name]["ports"].append("61950-62000:61950-62000")
             fp = open("%s/scripts/extra_actions" % workerdir, "a")
-            fp.write("apt-get -y install xnbd-server\n")
+            fp.write("apt-get -y install nbd-server\n")
             fp.close()
             os.chmod("%s/scripts/extra_actions" % workerdir, 0o755)
         use_overlay_server = True
@@ -696,10 +710,13 @@ def main():
                 dockcomp_add_device(dockcomp, worker_name, "/dev/%s:/dev/%s" % (board_name, board_name))
             use_conmux = False
             use_ser2net = False
+            ser2net_keepopen = False
             if "use_conmux" in uart:
                 use_conmux = uart["use_conmux"]
             if "use_ser2net" in uart:
                 use_ser2net = uart["use_ser2net"]
+            if "ser2net_keepopen" in uart:
+                ser2net_keepopen = uart["ser2net_keepopen"]
             if (use_conmux and use_ser2net):
                 print("ERROR: Only one uart handler must be configured")
                 sys.exit(1)
@@ -714,17 +731,27 @@ def main():
             if use_ser2net:
                 if not worker_name in ser2net_ports:
                     ser2net_ports[worker_name] = ser2net_port_start
-                    fp = open("%s/ser2net.conf" % workerdir, "a")
-                    fp.write("DEFAULT:max-connections:10\n")
+                    fp = open("%s/ser2net.yaml" % workerdir, "a")
+                    fp.write("%YAML 1.1\n---\n")
                     fp.close()
-                ser2net_line = "%d:telnet:600:/dev/%s:%d 8DATABITS NONE 1STOPBIT" % (ser2net_ports[worker_name], board_name, baud)
-                if "ser2net_options" in uart:
-                    for ser2net_option in uart["ser2net_options"]:
-                        ser2net_line += " %s" % ser2net_option
                 device_line += template_device_ser2net.substitute(port=ser2net_ports[worker_name])
+                # YAML version
+                fp = open("%s/ser2net.yaml" % workerdir, "a")
+                fp.write("connection: &con%d\n" % ser2net_ports[worker_name])
+                fp.write("  accepter: telnet(rfc2217),tcp,%d\n" % ser2net_ports[worker_name])
+                fp.write("  enable: on\n")
+                if ser2net_keepopen:
+                    ser2net_yaml_line= "  connector: keepopen(retry-time=2000,discard-badwrites),serialdev,/dev/%s,%dn81,local" % (board_name, baud)
+                else:
+                    ser2net_yaml_line = "  connector: serialdev,/dev/%s,%dn81,local" % (board_name, baud)
+                if "ser2net_options" in uart:
+                    for ser2net_yaml_option in uart["ser2net_options"]:
+                        ser2net_yaml_line += ",%s" % ser2net_yaml_option
+                ser2net_yaml_line += "\n"
+                fp.write(ser2net_yaml_line)
+                fp.write("  options:\n")
+                fp.write("    max-connections: 10\n")
                 ser2net_ports[worker_name] += 1
-                fp = open("%s/ser2net.conf" % workerdir, "a")
-                fp.write(ser2net_line + " banner\n")
                 fp.close()
         if "connection_command" in board:
             connection_command = board["connection_command"]
