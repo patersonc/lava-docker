@@ -220,7 +220,9 @@ masters:
     webadmin_https:	Does the LAVA webadmin is accessed via https
     webinterface_port: Port number to use for the LAVA web interface (default to "10080")
     lava-coordinator:		Does the master should ran a lava-coordinator and export its port
-    persistent_db: true/false	(default false) Is the postgresql DB is persistent over reboot
+    persistent_db: true/false	(default false) Is the postgresql DB is persistent over reboot.
+                                WARNING: this is working accross the same LAVA version, this do not work when there is a postgresql major update
+                                This is not recommanded
     pg_lava_password:		The postgresql LAVA server password to set
     http_fqdn:			The FQDN used to access the LAVA web interface. This is necessary if you use https otherwise you will issue CSRF errors.
     healthcheck_url:		Hack healthchecks hosting URL. See hosting healthchecks below
@@ -264,6 +266,10 @@ masters:
         env:
 	- line1			A list of line to set as environment
 	- line2
+    event_notifications:
+      event_notification_topic:   A string which event receivers can use for filtering (default is set to the name of the master)
+      event_notification_port:    Port to use for event notifications (default to "5500")
+      event_notification_enabled: Set to true to enable event notifications (default to "false")
 slaves:
   - name: lab-slave-XX		The name of the slave (where XX is a number)
     host: name			name of the host running lava-slave-XX (default to "local")
@@ -337,7 +343,6 @@ boards:
       baud:		(optional) Change the baud rate of the this uart (default is 115200)
       devpath: the UDEV devpath to this uart for UART without serial number
       interfacenum:	(optional) The interfacenumber of the serial. (Used with two serial in one device)
-      use_conmux:	True/False (Use conmux-console instead of ser2net)
       use_ser2net: 	True/False (Deprecated, ser2net is the default uart handler)
       ser2net_keepopen:	True/False (optional) Use the recent ser2net keepopen
       ser2net_options:	(optional) A list of ser2net options to add
@@ -381,7 +386,6 @@ this script will generate all necessary files in the following locations:
 ```
 output/host/lava-master/tokens/			This is where the callback tokens will be generated
 output/host/lava-master/users/			This is where the users will be generated
-output/host/lab-slave-XX/conmux/		All files needed by conmux
 output/host/lab-slave-XX/devices/		All LAVA devices files
 output/host/udev/99-lavaworker-udev.rules 	udev rules for host
 output/host/docker-compose.yml			Generated from docker-compose.template
