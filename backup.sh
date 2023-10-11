@@ -1,6 +1,7 @@
 #!/bin/sh
 
-BACKUP_DIR="backup-$(date +%Y%m%d_%H%M)"
+BACKUP_FILE="backup-$(date +%Y%m%d_%H%M)"
+BACKUP_DIR="backups/$BACKUP_FILE"
 # use /tmp by default on host (this is used by tar)
 TMPDIR=${TMPDIR:-/tmp}
 export TMPDIR
@@ -10,7 +11,7 @@ mkdir -p $TMPDIR
 mkdir $BACKUP_DIR
 cp boards.yaml $BACKUP_DIR
 
-DOCKERID=$(docker ps |grep master | cut -d' ' -f1)
+DOCKERID=$(docker ps | grep master | cut -d' ' -f1)
 if [ -z "$DOCKERID" ];then
 	exit 1
 fi
@@ -30,5 +31,5 @@ docker cp $DOCKERID:/root/joboutput.tar.gz $BACKUP_DIR/ || exit $?
 docker exec $DOCKERID rm /root/joboutput.tar.gz || exit $?
 
 echo "Backup done in $BACKUP_DIR"
-rm -f backup-latest
-ln -sf $BACKUP_DIR backup-latest
+rm -f backups/backup-latest
+cd backups && ln -sf $BACKUP_FILE backup-latest
