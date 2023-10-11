@@ -63,9 +63,16 @@ popd
 
 case "${ARG}" in
 	slave)
-		echo "Setting ${SLAVE} status to active"
-		lavacli workers update --health ACTIVE ${SLAVE} > /dev/null 2>&1
-		echo "[OK]"
+		echo "Setting ${SLAVE} status to active..."
+		while true; do
+			RET=$(lavacli system api || true)
+			if [ "${RET}" == "2" ]; then
+				lavacli workers update --health ACTIVE ${SLAVE} > /dev/null 2>&1
+				echo "[OK]"
+				break
+			fi
+			sleep 10
+		done
 		;;
 esac
 
