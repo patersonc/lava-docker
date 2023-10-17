@@ -4,7 +4,7 @@
 
 LAVA_DIR="$(cd "$(dirname "$0")"; pwd)"
 BACKUPS_DIR="${LAVA_DIR}/backups"
-SLAVE="$(cat boards.yaml | grep name | grep lab-cip | cut -d : -f 2 | sed -e 's/^[[:space:]]*//')"
+SLAVE="$(cat boards.yaml | grep name | grep lab | cut -d : -f 2 | sed -e 's/^[[:space:]]*//')"
 ARG="$1"
 
 print_help() {
@@ -23,20 +23,20 @@ print_help() {
 
 case "${ARG}" in
 	master)
-		HOST="lava.ciplatform.org"
+		HOST="$(cat boards.yaml | grep " host:" | grep "ciplatform" | cut -d : -f 2 | sed -e 's/^[[:space:]]*//')"
 		# first backup
 		echo "Running backup first"
 		./backup.sh
 		echo "[OK]"
 		;;
 	slave)
-		HOST="$(cat boards.yaml | grep host | grep lab-cip | cut -d : -f 2 | sed -e 's/^[[:space:]]*//')"
+		HOST="$(cat boards.yaml | grep " host:" | grep lab | cut -d : -f 2 | sed -e 's/^[[:space:]]*//')"
 		echo "Setting LAVA worker to maintenance"
 		lavacli workers maintenance ${SLAVE}
 		echo "[OK]"
 		;;
 	all)
-		HOST="lava.ciplatform.org"
+		HOST="$(cat boards.yaml | grep " host:" | grep "ciplatform" | cut -d : -f 2 | sed -e 's/^[[:space:]]*//')"
 		echo "Setting LAVA worker to maintenance"
 		lavacli workers maintenance ${SLAVE}
 		echo "[OK]"
@@ -66,12 +66,16 @@ read aw
 popd
 
 # backup output dir
-echo "Backup output directory"
-if [ ! -d ${BACKUPS_DIR} ];then
-	mkdir -p ${BACKUPS_DIR}
-fi
-mv output "${BACKUPS_DIR}"/output-$(date +%Y%m%d_%H%M)
-echo "[OK]"
+case "${ARG}" in
+	master | all)
+		echo "Backup output directory"
+		if [ ! -d ${BACKUPS_DIR} ];then
+			mkdir -p ${BACKUPS_DIR}
+		fi
+		mv output "${BACKUPS_DIR}"/output-$(date +%Y%m%d_%H%M)
+		echo "[OK]"
+		;;
+esac
 
 echo "Press any key to continue"
 read aw

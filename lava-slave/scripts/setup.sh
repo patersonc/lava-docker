@@ -5,6 +5,8 @@ if [ ! -e "/root/devices/$(hostname)" ];then
 	exit 0
 fi
 
+. /root/setupenv
+
 if [ -z "$LAVA_MASTER_URI" ];then
 	echo "ERROR: Missing LAVA_MASTER_URI"
 	exit 11
@@ -146,7 +148,7 @@ do
 			if [ $? -ne 0 ]; then
 				CURR_WORKER=""
 			else
-				CURR_WORKER=$(cat /tmp/current-worker | sed '^.* ,,')
+				CURR_WORKER=$(cat /tmp/current-worker | sed 's,^.* ,,')
 			fi
 			if [ ! -z "$CURR_WORKER" -a "$CURR_WORKER" != "$worker" ];then
 				echo "ERROR: $devicename already present on another worker $CURR_WORKER"
